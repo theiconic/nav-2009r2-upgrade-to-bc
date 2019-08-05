@@ -1,0 +1,2814 @@
+OBJECT Codeunit 104049 UpgradeDimensionEntry
+{
+  OBJECT-PROPERTIES
+  {
+    Date=25/09/15;
+    Time=12:00:00 PM;
+    Version List=UPGTK8.00.00;
+  }
+  PROPERTIES
+  {
+    OnRun=BEGIN
+          END;
+
+  }
+  CODE
+  {
+    VAR
+      Text001Err@1170000000 : TextConst 'ENU=The dimension table %1 and parent table %2 do not have matching keys.';
+      Text002Err@1002 : TextConst 'ENU=Table %1 does not have a field named %2.';
+      Text013Err@1021 : TextConst 'ENU=Primary key for table %1 is too complex.';
+      TempDim@1019 : TEMPORARY Record 348;
+      DimMgt@1018 : Codeunit 408;
+      SQLMgt@1011 : Codeunit 104050;
+      DimTableKeyFields@1006 : ARRAY [16,2] OF Text[80];
+      ParentTableKeyFields@1005 : ARRAY [16,2] OF Text[80];
+      TableNameUpgradeDimTable@1004 : Text[80];
+      TableNameUpgradeDimSetID@1001 : Text[80];
+      TableNameUpgradeTableID@1000 : Text[80];
+
+    PROCEDURE UpgradeTable@10(DimTableID@1000 : Integer;ParentTableID@1001 : Integer);
+    VAR
+      RecRef@1002 : RecordRef;
+    BEGIN
+      RecRef.OPEN(DimTableID);
+      IF RecRef.ISEMPTY THEN
+        EXIT;
+      RecRef.CLOSE;
+
+      FillTempDim;
+
+      IF ParentTableID <> 0 THEN
+        IF NOT HasTableField(ParentTableID,'Dimension Set ID') THEN
+          ERROR(Text002Err,ParentTableID,'Dimension Set ID');
+      IF HasTableField(DimTableID,'Dimension Value Code') THEN
+        UpgradeTableDim(DimTableID,ParentTableID,'Dimension Value Code','Dimension Set ID');
+      IF HasTableField(DimTableID,'New Dimension Value Code') THEN
+        UpgradeTableDim(DimTableID,ParentTableID,'New Dimension Value Code','New Dimension Set ID');
+    END;
+
+    LOCAL PROCEDURE UpgradeTableDim@6(DimTableID@1000 : Integer;ParentTableID@1001 : Integer;SourceDimFieldName@1024 : Text[80];DestDimFieldName@1023 : Text[80]);
+    BEGIN
+      UpdateTableKeyFieldArrays(DimTableID,ParentTableID);
+      CreateIntermediateWorkTables(DimTableID,ParentTableID,SourceDimFieldName);
+      UpdateDimSetIdInWorkTables;
+      UpdateParentTable(DimTableID,ParentTableID,DestDimFieldName);
+      CleanupTables(DimTableID);
+      COMMIT;
+    END;
+
+    LOCAL PROCEDURE CreateIntermediateWorkTables@15(DimTableID@1008 : Integer;ParentTableID@1007 : Integer;SourceDimFieldName@1006 : Text[80]);
+    VAR
+      SQLConnectionOnClient@1002 : DotNet "'System.Data, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089'.System.Data.SqlClient.SqlConnection";
+      SQLCommandOnClient@1001 : DotNet "'System.Data, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089'.System.Data.SqlClient.SqlCommand";
+      SQLParameterOnClient@1000 : DotNet "'System.Data, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089'.System.Data.SqlClient.SqlParameter";
+      i@1170000000 : Integer;
+    BEGIN
+      SQLMgt.GetSQLConnection(SQLConnectionOnClient);
+      SQLConnectionOnClient.Open;
+      SQLCommandOnClient := SQLCommandOnClient.SqlCommand(CreateTablesQry(DimTableID,ParentTableID,SourceDimFieldName),
+          SQLConnectionOnClient);
+      SQLCommandOnClient.CommandTimeout(0); // wait indefinitely for the command to finish.
+      i := 0;
+      IF TempDim.FINDSET THEN
+        REPEAT
+          i := i + 1;
+          SQLParameterOnClient := SQLParameterOnClient.SqlParameter(STRSUBSTNO('@Dim%1',i),TempDim.Code);
+          SQLCommandOnClient.Parameters.Add(SQLParameterOnClient);
+        UNTIL TempDim.NEXT = 0;
+      SQLCommandOnClient.ExecuteNonQuery;
+      SQLCommandOnClient.Parameters.Clear;
+      SQLConnectionOnClient.Close;
+    END;
+
+    LOCAL PROCEDURE UpdateDimSetIdInWorkTables@16();
+    VAR
+      TempDimSetEntry@1014 : TEMPORARY Record 480;
+      SQLConnection@1009 : DotNet "'System.Data, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089'.System.Data.SqlClient.SqlConnection";
+      SQLCommand@1007 : DotNet "'System.Data, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089'.System.Data.SqlClient.SqlCommand";
+      SQLDataAdapter@1004 : DotNet "'System.Data, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089'.System.Data.SqlClient.SqlDataAdapter";
+      SQLCommandBuilder@1003 : DotNet "'System.Data, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089'.System.Data.SqlClient.SqlCommandBuilder";
+      SystemDataTable@1002 : DotNet "'System.Data, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089'.System.Data.DataTable";
+      SystemDataRows@1001 : DotNet "'System.Data, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089'.System.Data.DataRowCollection" WITHEVENTS;
+      SystemDataRow@1000 : DotNet "'System.Data, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089'.System.Data.DataRow" WITHEVENTS;
+      rowcount@1170000001 : Integer;
+      DimSetID@1170000000 : Integer;
+      i@1015 : Integer;
+    BEGIN
+      SQLMgt.GetSQLConnection(SQLConnection);
+      SQLConnection.Open;
+      SQLCommand := SQLCommand.SqlCommand(DimSetIDReaderQry,SQLConnection);
+      SQLCommand.CommandTimeout(0); // wait indefinitely for the command to finish.
+      SQLDataAdapter := SQLDataAdapter.SqlDataAdapter(SQLCommand);
+      SystemDataTable := SystemDataTable.DataTable;
+      SQLCommandBuilder := SQLCommandBuilder.SqlCommandBuilder(SQLDataAdapter);
+      SQLDataAdapter.Fill(SystemDataTable);  // executes query + fills DataTable
+      SystemDataRows := SystemDataTable.Rows;
+      IF SystemDataRows.Count > 0 THEN
+        WHILE rowcount < SystemDataRows.Count DO BEGIN
+          SystemDataRow := SystemDataRows.Item(rowcount);
+          SystemDataRow.BeginEdit;
+          TempDimSetEntry.DELETEALL;
+          i := 0;
+          IF TempDim.FINDSET THEN
+            REPEAT
+              i := i + 1;
+              IF NOT SystemDataRow.IsNull(i) THEN BEGIN
+                TempDimSetEntry."Dimension Code" := TempDim.Code;
+                TempDimSetEntry."Dimension Value Code" := FORMAT(SystemDataRow.Item(i));
+                IF TempDimSetEntry."Dimension Value Code" <> '' THEN
+                  TempDimSetEntry.INSERT(TRUE);
+              END;
+            UNTIL TempDim.NEXT = 0;
+          DimSetID := DimMgt.GetDimensionSetID(TempDimSetEntry);
+          SystemDataRow.Item(0,DimSetID);
+          SystemDataRow.EndEdit;
+          rowcount := rowcount + 1;
+        END;
+      COMMIT; // Commits the newly created Dimension Set IDs (tables 480 and 481).
+      SQLDataAdapter.UpdateCommand := SQLCommandBuilder.GetUpdateCommand;
+      SQLDataAdapter.Update(SystemDataTable);
+
+      // Update the upgrade_Dim table's DimSetID from upgrade_DimSetID.
+      SQLCommand.CommandText := UpdateDimEntryQry;
+      SQLCommand.ExecuteNonQuery;
+      SQLConnection.Close;
+    END;
+
+    LOCAL PROCEDURE UpdateParentTable@17(DimTableID@1003 : Integer;ParentTableID@1002 : Integer;DestDimFieldName@1000 : Text[80]);
+    VAR
+      SQLConnection@1013 : DotNet "'System.Data, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089'.System.Data.SqlClient.SqlConnection";
+      SQLConnection2@1012 : DotNet "'System.Data, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089'.System.Data.SqlClient.SqlConnection";
+      SQLCommand@1011 : DotNet "'System.Data, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089'.System.Data.SqlClient.SqlCommand";
+      SQLCommand2@1010 : DotNet "'System.Data, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089'.System.Data.SqlClient.SqlCommand";
+      SQLReader@1009 : DotNet "'System.Data, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089'.System.Data.SqlClient.SqlDataReader" WITHEVENTS;
+      KeyOffset@1170000001 : Integer;
+      ParentTableID2@1170000000 : Integer;
+    BEGIN
+      SQLMgt.GetSQLConnection(SQLConnection);
+      SQLConnection.Open;
+      SQLCommand := SQLCommand.SqlCommand;
+      SQLCommand.Connection := SQLConnection;
+      SQLCommand.CommandTimeout(0); // wait indefinitely for the command to finish.
+      IF ParentTableID <> 0 THEN BEGIN
+        KeyOffset := 0;
+        SQLCommand.CommandText := UpdateLedgerEntryTableQry(ParentTableID,KeyOffset,DestDimFieldName);
+        SQLCommand.CommandTimeout(0); // wait indefinitely for the command to finish.
+        SQLCommand.ExecuteNonQuery;
+      END ELSE BEGIN
+        SQLMgt.GetSQLConnection(SQLConnection2);
+        SQLConnection2.Open;
+        SQLCommand2 := SQLCommand2.SqlCommand(TableIDReaderQry,SQLConnection2);
+        SQLCommand2.CommandTimeout(0); // wait indefinitely for the command to finish.
+        SQLReader := SQLCommand2.ExecuteReader;
+        IF SQLReader.HasRows THEN
+          WHILE SQLReader.Read DO BEGIN
+            ParentTableID2 := SQLReader.GetInt32(0);  // Parent Table ID
+            KeyOffset := GetParentTableKeyOffset(ParentTableID2);
+            GetTableKeyFieldArray(ParentTableID2,ParentTableKeyFields);
+            IF HasTableField(ParentTableID2,DestDimFieldName) AND AreDimKeyAndParentKeyCompatible(KeyOffset) THEN BEGIN
+              SQLCommand.CommandText := UpdateLedgerEntryTableQry(ParentTableID2,KeyOffset,DestDimFieldName);
+              SQLCommand.ExecuteNonQuery;
+            END ELSE
+              IF NOT AreDimKeyAndParentKeyCompatible(1) THEN
+                ERROR(STRSUBSTNO(Text001Err,DimTableID,ParentTableID2)); // TODO:ERROR(STRSUBSTNO(Text001,DimTableID,ParentTableID2),DimTableID,'');
+          END;
+        SQLReader.Close;
+        SQLConnection2.Close;
+      END;
+      SQLConnection.Close;
+    END;
+
+    LOCAL PROCEDURE GetParentTableKeyOffset@21(ParentTableID@1000 : Integer) : Integer;
+    BEGIN
+      IF (ParentTableID IN [DATABASE::"Standard Sales Line",DATABASE::"Standard Purchase Line"]) OR
+         (ParentTableID IN [DATABASE::"Reminder Header",DATABASE::"Reminder Line"]) OR
+         (ParentTableID IN [DATABASE::"Finance Charge Memo Header",DATABASE::"Finance Charge Memo Line"]) OR
+         (ParentTableID IN [DATABASE::"Transfer Header",DATABASE::"Transfer Line"])
+      THEN
+        EXIT(2);
+      EXIT(1);
+    END;
+
+    LOCAL PROCEDURE CleanupTables@18(DimTableID@1003 : Integer);
+    VAR
+      SQLConnectionOnClient@1001 : DotNet "'System.Data, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089'.System.Data.SqlClient.SqlConnection";
+      SQLCommandOnClient@1000 : DotNet "'System.Data, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089'.System.Data.SqlClient.SqlCommand";
+    BEGIN
+      SQLMgt.GetSQLConnection(SQLConnectionOnClient);
+      SQLConnectionOnClient.Open;
+
+      // Delete intermediary tables.
+      SQLCommandOnClient := SQLCommandOnClient.SqlCommand(DropTablesQry,SQLConnectionOnClient);
+      SQLCommandOnClient.CommandTimeout(0); // wait indefinitely for the command to finish.
+      SQLCommandOnClient.ExecuteNonQuery;
+
+      // Truncate Dimension Table (~DELETEALL)
+      SQLCommandOnClient.CommandText := TruncateDimTableQry(DimTableID);
+      SQLCommandOnClient.ExecuteNonQuery;
+
+      SQLConnectionOnClient.Close;
+    END;
+
+    LOCAL PROCEDURE UpdateLedgerEntryTableQry@4(TableID@1002 : Integer;DimTableKeyOffSet@1001 : Integer;DestDimFieldName@1000 : Text[80]) : Text;
+    VAR
+      Qry@1007 : Text;
+      SelectQry@1006 : Text;
+      WhereClause@1005 : Text;
+      AndWord@1004 : Text;
+      i@1003 : Integer;
+    BEGIN
+      IF DimTableKeyOffSet > 0 THEN
+        WhereClause :=
+          STRSUBSTNO(
+            ' UD.[%1] = %2',
+            DimTableKeyFields[1,1],
+            TableID);
+      i := 1;
+      WHILE ParentTableKeyFields[i,1] <> '' DO BEGIN
+        IF WhereClause = '' THEN
+          AndWord := ''
+        ELSE
+          AndWord := 'and';
+        WhereClause :=
+          WhereClause +
+          STRSUBSTNO(
+            ' %1 UD.[%2] = [%3].[%4]',
+            AndWord,
+            DimTableKeyFields[i + DimTableKeyOffSet,1],
+            SQLMgt.GetFullTableNameSQL(TableID),
+            ParentTableKeyFields[i,1]);
+        i := i + 1;
+      END;
+      WHILE DimTableKeyFields[i + DimTableKeyOffSet + 1,1] <> '' DO BEGIN
+        WhereClause :=
+          WhereClause +
+          STRSUBSTNO(
+            ' and UD.[%1] = %2',
+            DimTableKeyFields[i + DimTableKeyOffSet,1],
+            ZeroValue(DimTableKeyFields[i + DimTableKeyOffSet,2]));
+        i := i + 1;
+      END;
+      SelectQry :=
+        STRSUBSTNO(
+          ' select UD.DimSetID ' +
+          ' from [%1] as UD where %2 ',
+          TableNameUpgradeDimTable,WhereClause);
+      Qry :=
+        STRSUBSTNO(
+          'update [%1] set [%2] = (%3) where exists (%3)',
+          SQLMgt.GetFullTableNameSQL(TableID),DestDimFieldName,SelectQry);
+      EXIT(Qry);
+    END;
+
+    PROCEDURE CreateTablesQry@3(DimTableID@1009 : Integer;ParentTableID@1008 : Integer;SourceDimFieldName@1004 : Text[80]) : Text;
+    VAR
+      DimEntryQry@1012 : Text;
+      DimSetQry@1011 : Text;
+      ParentTableIDQry@1010 : Text;
+      DimEntryJoinQry@1007 : Text;
+      CreateIndexQry@1006 : Text;
+      JoinKeyWord@1005 : Text;
+      OrderByKeys@1003 : Text;
+      OrderByDim@1002 : Text;
+      i@1001 : Integer;
+      DimNo@1000 : Integer;
+    BEGIN
+      TableNameUpgradeDimTable := STRSUBSTNO('%1$upgrade%2_Dim',SQLMgt.ConvertCompanyName(COMPANYNAME),DimTableID);
+      TableNameUpgradeDimSetID := STRSUBSTNO('%1$upgrade%2_DimSetID',SQLMgt.ConvertCompanyName(COMPANYNAME),DimTableID);
+      TableNameUpgradeTableID := STRSUBSTNO('%1$upgrade%2_TableID',SQLMgt.ConvertCompanyName(COMPANYNAME),DimTableID);
+      DimEntryQry := 'select DISTINCT';
+      i := 1;
+      WHILE DimTableKeyFields[i + 1,1] <> '' DO BEGIN
+        DimEntryQry := DimEntryQry + STRSUBSTNO(' LED.[%1],',DimTableKeyFields[i,1]);
+        i := i + 1;
+      END;
+      DimEntryQry := DimEntryQry + ' 0 as DimSetID';
+      DimSetQry := ' select DISTINCT DimSetID';
+      FOR DimNo := 1 TO TempDim.COUNT DO BEGIN
+        DimEntryQry := DimEntryQry + STRSUBSTNO(',D%1.[%2] as DimVal%1',DimNo,SourceDimFieldName);
+        DimSetQry := DimSetQry + STRSUBSTNO(',DimVal%1',DimNo);
+        DimEntryJoinQry :=
+          DimEntryJoinQry +
+          STRSUBSTNO(
+            ' left outer join' +
+            ' [%1] as D%2',
+            SQLMgt.GetFullTableNameSQL(DimTableID),DimNo);
+        i := 1;
+        JoinKeyWord := 'on';
+        WHILE DimTableKeyFields[i + 1,1] <> '' DO BEGIN
+          DimEntryJoinQry :=
+            DimEntryJoinQry +
+            STRSUBSTNO(
+              ' %1 LED.[%3] = D%2.[%3]',
+              JoinKeyWord,DimNo,DimTableKeyFields[i,1]);
+          i := i + 1;
+          JoinKeyWord := 'and';
+        END;
+        DimEntryJoinQry :=
+          DimEntryJoinQry +
+          STRSUBSTNO(
+            ' and D%1.[Dimension Code] = @Dim%1',
+            DimNo);
+      END;
+      DimEntryQry := DimEntryQry + STRSUBSTNO(' into [%1] ',TableNameUpgradeDimTable);
+      DimEntryQry := DimEntryQry + STRSUBSTNO(' from [%1] as LED ',SQLMgt.GetFullTableNameSQL(DimTableID));
+      DimEntryQry := DimEntryQry + DimEntryJoinQry;
+      DimSetQry := DimSetQry + STRSUBSTNO(' into [%1] ',TableNameUpgradeDimSetID);
+      DimSetQry := DimSetQry + STRSUBSTNO(' from [%1] ',TableNameUpgradeDimTable);
+      IF ParentTableID = 0 THEN
+        ParentTableIDQry :=
+          STRSUBSTNO(
+            ' select  DISTINCT ULED.[%1] into [%2] from [%3] as ULED ',
+            DimTableKeyFields[1,1],TableNameUpgradeTableID,TableNameUpgradeDimTable);
+      DimSetQry :=
+        DimSetQry +
+        STRSUBSTNO(
+          ' alter table [%1] add ID int identity ' +
+          ' alter table [%1] add constraint %2$pk_dim%3_id primary key (ID) ',
+          TableNameUpgradeDimSetID,DELCHR(SQLMgt.ConvertCompanyName(COMPANYNAME),'='),DimTableID);
+      i := 1;
+      WHILE (i < 5) AND (DimTableKeyFields[i + 1,1] <> '') DO BEGIN
+        IF i > 1 THEN
+          OrderByKeys := OrderByKeys + ',';
+        OrderByKeys := OrderByKeys + STRSUBSTNO('[%1]',DimTableKeyFields[i,1]);
+        i := i + 1;
+      END;
+      OrderByDim := 'DimVal1';
+      i := 2;
+      WHILE (i < 5) AND (i <= TempDim.COUNT) DO BEGIN
+        OrderByDim := OrderByDim + STRSUBSTNO(',DimVal%1',i);
+        i := i + 1;
+      END;
+      CreateIndexQry :=
+        STRSUBSTNO(
+          ' create index IDX%6$ix_upgrade%4_EntryDim on [%1] (%2) ' +
+          ' create index IDX%6$ix_upgrade%4_EntryDim2 on [%1] (%3) ' +
+          ' create index IDX%6$ix_upgrade%4_DimSetID on [%5] (%3) ',
+          TableNameUpgradeDimTable,OrderByKeys,OrderByDim,DimTableID,TableNameUpgradeDimSetID,
+          DELCHR(SQLMgt.ConvertCompanyName(COMPANYNAME),'='));
+      EXIT(DropTablesQry + ' ' + DimEntryQry + ' ' + DimSetQry + ' ' + ParentTableIDQry + ' ' + CreateIndexQry);
+    END;
+
+    PROCEDURE UpdateDimEntryQry@12() : Text;
+    VAR
+      Qry@1002 : Text;
+      WhereAnd@1001 : Text;
+      DimNo@1000 : Integer;
+    BEGIN
+      Qry :=
+        STRSUBSTNO(
+          ' update [%1] set DimSetID=' +
+          ' (select DimSetID ' +
+          '  from [%2] as D ',
+          TableNameUpgradeDimTable,TableNameUpgradeDimSetID);
+
+      WhereAnd := 'where';
+      FOR DimNo := 1 TO TempDim.COUNT DO BEGIN
+        Qry :=
+          Qry +
+          STRSUBSTNO(
+            ' %1 ((D.DimVal%2 = [%3].DimVal%2) or (D.DimVal%2 is null) and ([%3].DimVal%2 is null))',
+            WhereAnd,DimNo,TableNameUpgradeDimTable);
+        WhereAnd := 'and';
+      END;
+      Qry := Qry + ')';
+      EXIT(Qry);
+    END;
+
+    PROCEDURE DimSetIDReaderQry@1170000001() : Text;
+    BEGIN
+      EXIT(STRSUBSTNO('select * from [%1]',TableNameUpgradeDimSetID));
+    END;
+
+    PROCEDURE TableIDReaderQry@5() : Text;
+    BEGIN
+      EXIT(STRSUBSTNO('select [%1] from [%2]',DimTableKeyFields[1,1],TableNameUpgradeTableID));
+    END;
+
+    LOCAL PROCEDURE DropTablesQry@7() : Text;
+    BEGIN
+      EXIT(
+        DropTableQry(TableNameUpgradeDimTable) + ' ' +
+        DropTableQry(TableNameUpgradeDimSetID) + ' ' +
+        DropTableQry(TableNameUpgradeTableID));
+    END;
+
+    LOCAL PROCEDURE DropTableQry@20(TableName@1000 : Text) : Text;
+    BEGIN
+      EXIT(STRSUBSTNO('IF EXISTS(SELECT * FROM sys.objects WHERE name=''%1'' AND type=''U'') DROP TABLE [%1] ',TableName));
+    END;
+
+    LOCAL PROCEDURE TruncateDimTableQry@13(DimTableID@1000 : Integer) : Text;
+    BEGIN
+      EXIT(
+        STRSUBSTNO(
+          'truncate table [%1]',
+          SQLMgt.GetFullTableNameSQL(DimTableID)));
+    END;
+
+    PROCEDURE UpdateTableKeyFieldArrays@2(DimTableID@1000 : Integer;ParentTableID@1001 : Integer);
+    BEGIN
+      GetTableKeyFieldArray(DimTableID,DimTableKeyFields);
+      GetTableKeyFieldArray(ParentTableID,ParentTableKeyFields);
+      IF ParentTableID = 0 THEN BEGIN
+        IF DimTableKeyFields[1,2] <> 'Integer' THEN // Table ID
+          ERROR(Text001Err,DimTableID,ParentTableID);
+        EXIT;
+      END;
+      IF NOT AreDimKeyAndParentKeyCompatible(0) THEN
+        ERROR(Text001Err,DimTableID,ParentTableID);
+    END;
+
+    LOCAL PROCEDURE GetTableKeyFieldArray@8(TableID@1000 : Integer;VAR KeyArr@1001 : ARRAY [16,2] OF Text[80]);
+    VAR
+      RecRef@1002 : RecordRef;
+      KeyRef@1003 : KeyRef;
+      FieldRef@1004 : FieldRef;
+      i@1005 : Integer;
+    BEGIN
+      CLEAR(KeyArr);
+      IF TableID = 0 THEN
+        EXIT;
+      RecRef.OPEN(TableID);
+      KeyRef := RecRef.KEYINDEX(1);
+      IF KeyRef.FIELDCOUNT >= ARRAYLEN(KeyArr) THEN  // reserve the last index as 'stop code'
+        ERROR(Text013Err,SQLMgt.GetTableNameSQL(TableID));
+      IF TableID = DATABASE::"Document Dimension Archive" THEN
+        GetDocDimArchiveTableKeyFieldArray(KeyRef,FieldRef,KeyArr)
+      ELSE
+        FOR i := 1 TO KeyRef.FIELDCOUNT DO BEGIN
+          FieldRef := KeyRef.FIELDINDEX(i);
+          KeyArr[i,1] := SQLMgt.StringConvert(FieldRef.NAME);
+          KeyArr[i,2] := FORMAT(FieldRef.TYPE);
+        END;
+      RecRef.CLOSE;
+    END;
+
+    LOCAL PROCEDURE GetDocDimArchiveTableKeyFieldArray@19(VAR KeyRef@1001 : KeyRef;VAR FieldRef@1000 : FieldRef;VAR KeyArr@1002 : ARRAY [16,2] OF Text[80]);
+    VAR
+      i@1004 : Integer;
+      j@1003 : Integer;
+    BEGIN
+      FOR i := 1 TO KeyRef.FIELDCOUNT DO BEGIN
+        FieldRef := KeyRef.FIELDINDEX(i);
+        CASE TRUE OF
+          i = 4:
+            j := 6;
+          i = 5:
+            j := 4;
+          i = 6:
+            j := 5;
+          ELSE
+            j := i;
+        END;
+        KeyArr[j,1] := SQLMgt.StringConvert(FieldRef.NAME);
+        KeyArr[j,2] := FORMAT(FieldRef.TYPE);
+      END
+    END;
+
+    LOCAL PROCEDURE AreDimKeyAndParentKeyCompatible@1(OffSet@1000 : Integer) : Boolean;
+    VAR
+      i@1002 : Integer;
+    BEGIN
+      i := 1;
+      WHILE ParentTableKeyFields[i,1] <> '' DO BEGIN
+        IF ParentTableKeyFields[i,2] <> DimTableKeyFields[i + OffSet,2] THEN
+          EXIT(FALSE);
+        i := i + 1;
+      END;
+
+      EXIT(TRUE);
+    END;
+
+    LOCAL PROCEDURE ZeroValue@1020(TypeName@1000 : Text[30]) : Text[30];
+    VAR
+      Field@1001 : Record 2000000041;
+      ODate@1002 : Date;
+      OTime@1003 : Time;
+      OBoolean@1004 : Boolean;
+    BEGIN
+      CASE TypeName OF
+        FORMAT(Field.Type::Integer):
+          EXIT(FORMAT(0));
+        FORMAT(Field.Type::BigInteger):
+          EXIT(FORMAT(0));
+        FORMAT(Field.Type::Decimal):
+          EXIT(FORMAT(0));
+        FORMAT(Field.Type::Option):
+          EXIT(FORMAT(0));
+        FORMAT(Field.Type::Text):
+          EXIT('''');
+        FORMAT(Field.Type::Code):
+          EXIT('''');
+        FORMAT(Field.Type::Boolean):
+          EXIT(FORMAT(OBoolean));
+        FORMAT(Field.Type::Date):
+          EXIT(FORMAT(ODate));
+        FORMAT(Field.Type::Time):
+          EXIT(FORMAT(OTime));
+        ELSE
+          ERROR('Not implemented for type %1.',TypeName);
+      END;
+      EXIT('');
+    END;
+
+    LOCAL PROCEDURE HasTableField@9(TableID@1002 : Integer;FieldName@1000 : Text[80]) : Boolean;
+    VAR
+      Field@1001 : Record 2000000041;
+    BEGIN
+      Field.SETRANGE(TableNo,TableID);
+      Field.SETRANGE(FieldName,FieldName);
+      EXIT(NOT Field.ISEMPTY);
+    END;
+
+    LOCAL PROCEDURE GetTableName@11(TableID@1000 : Integer) : Text[80];
+    VAR
+      RecRef@1001 : RecordRef;
+      TableName@1002 : Text[80];
+    BEGIN
+      IF TableID = 0 THEN
+        EXIT('');
+      RecRef.OPEN(TableID);
+      TableName := RecRef.NAME;
+      RecRef.CLOSE;
+      EXIT(TableName);
+    END;
+
+    LOCAL PROCEDURE FillTempDim@14();
+    VAR
+      Dim@1000 : Record 348;
+    BEGIN
+      TempDim.DELETEALL;
+      IF Dim.FINDSET THEN
+        REPEAT
+          TempDim := Dim;
+          TempDim.INSERT;
+        UNTIL Dim.NEXT = 0;
+    END;
+
+    BEGIN
+    END.
+  }
+}
+
+OBJECT Codeunit 104050 Upgrade - SQL Mgt.
+{
+  OBJECT-PROPERTIES
+  {
+    Date=25/09/15;
+    Time=12:00:00 PM;
+    Version List=UPGTK8.00.00;
+  }
+  PROPERTIES
+  {
+    OnRun=BEGIN
+          END;
+
+  }
+  CODE
+  {
+    VAR
+      dbpropertyInitialized@1002 : Boolean;
+      dbpropFromStr@1001 : Text[30];
+      dbpropToStr@1000 : Text[30];
+
+    PROCEDURE GetSQLConnection@5(VAR SQLConnection@1000 : DotNet "'System.Data, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089'.System.Data.SqlClient.SqlConnection");
+    BEGIN
+      SQLConnection :=
+        SQLConnection.SqlConnection(
+          STRSUBSTNO(
+            'Data Source=%1;Initial Catalog=%2;Integrated Security=SSPI',
+            GetServerName,GetDBName));
+    END;
+
+    PROCEDURE GetServerName@1() : Text[250];
+    VAR
+      ServerName@1001 : Text[250];
+      navServerUserSettings@1003 : DotNet "'Microsoft.Dynamics.Nav.Types, Version=8.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35'.Microsoft.Dynamics.Nav.Types.ServerUserSettings";
+    BEGIN
+      ServerName := navServerUserSettings.Instance.ServerName;
+      EXIT(ServerName);
+    END;
+
+    PROCEDURE GetDBName@3() : Text[250];
+    VAR
+      DBName@1001 : Text[250];
+      navServerUserSettings@1003 : DotNet "'Microsoft.Dynamics.Nav.Types, Version=8.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35'.Microsoft.Dynamics.Nav.Types.ServerUserSettings";
+    BEGIN
+      DBName := navServerUserSettings.Instance.DatabaseName.Value;
+      EXIT(DBName);
+    END;
+
+    PROCEDURE GetFullTableNameSQL@8(TableID@1000 : Integer) : Text[128];
+    BEGIN
+      EXIT(STRSUBSTNO('%1$%2',GetCompanyNameSQL,GetTableNameSQL(TableID)));
+    END;
+
+    PROCEDURE GetCompanyNameSQL@10() : Text[80];
+    BEGIN
+      EXIT(StringConvert(COMPANYNAME));
+    END;
+
+    PROCEDURE GetTableNameSQL@7(TableID@1000 : Integer) : Text[80];
+    VAR
+      RecRef@1001 : RecordRef;
+      TableName@1002 : Text[80];
+    BEGIN
+      RecRef.OPEN(TableID);
+      TableName := RecRef.NAME;
+      RecRef.CLOSE;
+      EXIT(StringConvert(TableName));
+    END;
+
+    LOCAL PROCEDURE GetDBPropertyField@11(FieldName@1000 : Text) : Text;
+    VAR
+      SQLCommand@1003 : DotNet "'System.Data, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089'.System.Data.SqlClient.SqlCommand";
+      SQLConnection@1002 : DotNet "'System.Data, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089'.System.Data.SqlClient.SqlConnection";
+      Qry@1004 : Text;
+      i@1001 : Integer;
+      FieldValue@1005 : Text;
+    BEGIN
+      IF FieldName = '' THEN
+        EXIT('');
+
+      Qry := STRSUBSTNO('select top 1 [%1] from [$ndo$dbproperty]',FieldName);
+
+      GetSQLConnection(SQLConnection);
+      SQLConnection.Open;
+
+      SQLCommand := SQLCommand.SqlCommand(Qry,SQLConnection);
+      SQLCommand.CommandTimeout(0); // wait indefinately for the command to finish.
+
+      FieldValue := FORMAT(SQLCommand.ExecuteScalar);
+
+      SQLConnection.Close;
+      EXIT(FieldValue);
+    END;
+
+    PROCEDURE ExecuteSQLCommand@4(CommandString@1000 : Text) : Integer;
+    VAR
+      SQLConnection@1002 : DotNet "'System.Data, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089'.System.Data.SqlClient.SqlConnection";
+      SQLCommand@1003 : DotNet "'System.Data, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089'.System.Data.SqlClient.SqlCommand";
+      NoOfAffectedRows@1001 : Integer;
+    BEGIN
+      GetSQLConnection(SQLConnection);
+      SQLConnection.Open;
+
+      SQLCommand := SQLCommand.SqlCommand(CommandString,SQLConnection);
+      SQLCommand.CommandTimeout(0); // wait indefinately for the command to finish.
+
+      NoOfAffectedRows := SQLCommand.ExecuteNonQuery;
+
+      SQLConnection.Close;
+      EXIT(NoOfAffectedRows);
+    END;
+
+    PROCEDURE StringConvert@2(NAVName@1000 : Text[80]) : Text[80];
+    VAR
+      i@1001 : Integer;
+    BEGIN
+      IF NOT dbpropertyInitialized THEN BEGIN
+        dbpropertyInitialized := TRUE;
+        IF GetDBPropertyField('convertidentifiers') = '1' THEN BEGIN
+          dbpropFromStr := GetDBPropertyField('invalididentifierchars');
+          FOR i := 1 TO STRLEN(dbpropFromStr) DO
+            dbpropToStr += '_';
+        END;
+      END;
+
+      EXIT(CONVERTSTR(NAVName,dbpropFromStr,dbpropToStr));
+    END;
+
+    PROCEDURE ConvertCompanyName@1170000000(NAVName@1000 : Text[80]) : Text[80];
+    VAR
+      i@1001 : Integer;
+    BEGIN
+      EXIT(CONVERTSTR(StringConvert(NAVName),',()-&','_____'));
+    END;
+
+    BEGIN
+    END.
+  }
+}
+
+OBJECT Codeunit 104051 UPG6080.W1
+{
+  OBJECT-PROPERTIES
+  {
+    Date=11/03/19;
+    Time=[ 6:10:39 PM];
+    Modified=Yes;
+    Version List=UPGTK8.00.00,NAVUP-890;
+  }
+  PROPERTIES
+  {
+    Subtype=Upgrade;
+    OnRun=BEGIN
+          END;
+
+  }
+  CODE
+  {
+    VAR
+      DividerTxt@1011 : TextConst 'ENU=..';
+      DataUpgradeMgt@1010 : Codeunit 9900;
+      Text001Txt@1006 : TextConst 'ENU=Completed Contract';
+      Text002Txt@1005 : TextConst 'ENU=Cost of Sales';
+      Text003Txt@1004 : TextConst 'ENU=Cost Value';
+      Text004Txt@1003 : TextConst 'ENU=Sales Value';
+      Text005Txt@1002 : TextConst 'ENU=Percentage of Completion';
+      Text006Txt@1000 : TextConst 'ENU=POC';
+      Text007Err@1008 : TextConst '@@@=Do not translate;ENU="Only Order Type belonging to %1,%2 or %3 can be upgraded. Table %4;%5."';
+      Text008Err@1009 : TextConst '@@@=do not translate;ENU=There must not be empty Base Unit of Measure. Please fill it in for Temp Items %1 before updating.Table %2, Record numbers %3';
+
+    PROCEDURE UpgradeMethods@9999();
+    BEGIN
+      // UpdateItemTables; // 001 NAVUP-890
+      UpdateSKU;
+      UpdateSourceCodeSetup;
+      UpdatePhysInvItemSelNextCountingPeriod;
+      UpdateICOutboxSalesHeader;
+      UpdateHandledICOutboxSalesHeader;
+      UpdateHandledICOutboxSalesLine;
+      UpdateHandledICOutboxPurchHdr;
+      UpdateHandledICOutboxPurchLine;
+      UpdateICInboxPurchaseHeader;
+      UpdateHandledICInboxSalesHeader;
+      UpdateHandledICInboxSalesLine;
+      UpdateHandledICInboxPurchHeader;
+      UpdateHandledICInboxPurchLine;
+      // UpdateDtldCustLedgEntry; // 001 NAVUP-890
+      // UpdateDtldVendLedgEntry;  // 001 NAVUP-890
+      ProcessReportSelections;
+      UpgradeJob;
+      UpdateAsmSetup;
+      UpdateJobTask;
+      UpdateJobPlanningLine;
+      UpdateJobWIPGLEntry;
+      UpdateProd;
+      OnlineMapSetup;
+      UpdateServLine;
+      UpdateServiceLedgerEntry;
+      UpdateItemTrackingCodes;
+      UpdateItemJournalLine;
+      // UpdateTempItemLedgerEntry;   // 001 NAVUP-890
+      // UpdateValueEntry; // 001 NAVUP-890
+      UpdateCostShareBuffer;
+      UpdateCapacityLedgerEntry;
+      UpdateBinDedicatedField;
+      UpdateInvtAdmtEntryOrder;
+      UpdateWarrantyLedgerEntry;
+      UpdateItemApplnEntryHistory;
+      UpdateBOMComp;
+      // UpdateItemLedgerEntry; // 001 NAVUP-890
+      UpdateDOCreditCard;
+      UpdateSalesOrderDate;
+      UpdateSalesLines;
+      UpdatePurchLinesTable;
+      UpdateOutlookSynchFilter;
+      UpdateOutlookSynchField;
+      // 001 NAVUP-890 >>
+      //UpdateUserID; // do it in BC only for open documents, the rest to be done after going live
+      //UpdatePostedSalesInvoices;
+      //UpdatePostedSalesCreditMemos;
+      //UpdatePostedPurchCreditMemos;
+      //UpdatePostedPurchaseInvoices;
+      // 001 NAVUP-890 <<
+      UpdateUserIDFromDatabaseUser;
+    END;
+
+    [CheckPrecondition]
+    PROCEDURE CheckPreconditions@2();
+    VAR
+      TempItemEmptyBUoM@1002 : Record 104076;
+      RecordNo@1004 : Text;
+      ItemNo@1005 : Text;
+    BEGIN
+      WITH TempItemEmptyBUoM DO BEGIN
+        SETFILTER("Base Unit of Measure",'%1','');
+        IF FINDSET THEN BEGIN
+          REPEAT
+            IF STRLEN(ItemNo) > 0 THEN BEGIN
+              ItemNo := ItemNo + ', ';
+              RecordNo := RecordNo + ', ';
+            END;
+            ItemNo := ItemNo + "No.";
+            RecordNo := RecordNo + GETPOSITION;
+          UNTIL NEXT = 0;
+          ERROR(STRSUBSTNO(Text008Err,ItemNo,DATABASE::"Temp Item Empty BUoM",RecordNo));
+        END;
+      END;
+    END;
+
+    [TableSyncSetup]
+    PROCEDURE GetTableSyncSetupW1@3(VAR TableSynchSetup@1000 : Record 2000000135);
+    BEGIN
+      // The purpose of this method is to define how old and new tables will be available for dataupgrade
+
+      // The method is called at a point in time where schema changes have not yet been synchronized to
+      // the database so tables except virtual tables cannot be accessed
+
+      // TableSynchSetup."Table ID":
+      // Id of the table with schema changes (i.e the modified table).
+
+      // TableSynchSetup."Upgrade Table ID":
+      // Id of table where old data will be available in case the selected TableSynchSetup.Mode option is one of Copy or Move , otherwise 0
+
+      // TableSynchSetup.Mode:
+      // An option indicating how the data will be handled during synchronization
+      // Check: Synchronize without saving data in the upgrade table, fails if there is data in the modified field/table
+      // Copy: Synchronize with saving data in the upgrade table, the modified table contains data in matching fields
+      // Move: Synchronize with moving the data in the upgrade table,the changed table is empty; the upgrade logic is handled only by application code
+      // Force: Synchronize without saving data in the upgrade table, disregard if there is data in the modified field/table
+
+      // 2009->2013R2 Tables
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::Location,0,TableSynchSetup.Mode::Check);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Item Ledger Entry",0,TableSynchSetup.Mode::Check);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Purchase Header",0,TableSynchSetup.Mode::Check);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Invt. Posting Buffer",0,TableSynchSetup.Mode::Check);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Invoice Post. Buffer",0,TableSynchSetup.Mode::Check);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Company Information",0,TableSynchSetup.Mode::Check);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Item Journal Line",0,TableSynchSetup.Mode::Check);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"BOM Component",0,TableSynchSetup.Mode::Check);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Sales Shipment Header",0,TableSynchSetup.Mode::Check);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Sales Invoice Header",0,TableSynchSetup.Mode::Check);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Sales Cr.Memo Header",0,TableSynchSetup.Mode::Check);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Purch. Rcpt. Header",0,TableSynchSetup.Mode::Check);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Purch. Inv. Header",0,TableSynchSetup.Mode::Check);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Purch. Cr. Memo Hdr.",0,TableSynchSetup.Mode::Check);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::Job,0,TableSynchSetup.Mode::Check);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Job Ledger Entry",0,TableSynchSetup.Mode::Check);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Resource Price",0,TableSynchSetup.Mode::Check);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Res. Journal Line",0,TableSynchSetup.Mode::Check);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Source Code Setup",0,TableSynchSetup.Mode::Check);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"General Posting Setup",0,TableSynchSetup.Mode::Check);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Resource Price Change",0,TableSynchSetup.Mode::Check);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Reservation Entry",0,TableSynchSetup.Mode::Check);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Item Application Entry History",0,TableSynchSetup.Mode::Check);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Prepayment Inv. Line Buffer",0,TableSynchSetup.Mode::Check);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Job Queue Entry",0,TableSynchSetup.Mode::Check);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Online Map Setup",0,TableSynchSetup.Mode::Check);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Online Map Parameter Setup",0,TableSynchSetup.Mode::Check);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"DO Payment Credit Card",0,TableSynchSetup.Mode::Check);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Job Task",0,TableSynchSetup.Mode::Check);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Job Planning Line",0,TableSynchSetup.Mode::Check);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Job WIP Entry",0,TableSynchSetup.Mode::Check);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Job WIP G/L Entry",0,TableSynchSetup.Mode::Check);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Job WIP Buffer",0,TableSynchSetup.Mode::Check);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::Attachment,0,TableSynchSetup.Mode::Check);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Interaction Log Entry",0,TableSynchSetup.Mode::Check);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::Campaign,0,TableSynchSetup.Mode::Check);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Segment Line",0,TableSynchSetup.Mode::Check);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Marketing Setup",0,TableSynchSetup.Mode::Check);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Sales Header Archive",0,TableSynchSetup.Mode::Check);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Purchase Header Archive",0,TableSynchSetup.Mode::Check);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Outlook Synch. Filter",0,TableSynchSetup.Mode::Check);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Outlook Synch. Field",0,TableSynchSetup.Mode::Check);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Outlook Synch. Option Correl.",0,TableSynchSetup.Mode::Check);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Prod. Order Line",0,TableSynchSetup.Mode::Check);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Value Entry",0,TableSynchSetup.Mode::Check);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Capacity Ledger Entry",0,TableSynchSetup.Mode::Check);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Standard Cost Worksheet",0,TableSynchSetup.Mode::Check);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Cost Share Buffer",0,TableSynchSetup.Mode::Check);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Config. Package Table",0,TableSynchSetup.Mode::Check);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Config. Package Record",0,TableSynchSetup.Mode::Check);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Config. Package Data",0,TableSynchSetup.Mode::Check);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Config. Package Field",0,TableSynchSetup.Mode::Check);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Config. Package Error",0,TableSynchSetup.Mode::Check);
+
+      // upgrade from 2009SP1HF - table 550 added and field 80 removed after
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"VAT Rate Change Setup",0,TableSynchSetup.Mode::Force);
+
+      // 2013R2->2015 Tables
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Sales Header",0,TableSynchSetup.Mode::Check);
+    END;
+
+    LOCAL PROCEDURE UpdateItemTables@2123();
+    BEGIN
+      UpdateItem;
+      UpdateItemNextCountingPeriod;
+    END;
+
+    LOCAL PROCEDURE UpdateSKU@2124();
+    BEGIN
+      UpdateSKUPlanningParameters;
+      UpdateSKUNextCountingPeriod;
+    END;
+
+    LOCAL PROCEDURE UpdateSourceCodeSetup@2000();
+    VAR
+      SourceCodeSetup@1000 : Record 242;
+      SourceCode@1001 : Record 230;
+      ObjectTranslation@1002 : Record 377;
+    BEGIN
+      WITH SourceCodeSetup DO BEGIN
+        GET;
+        "Payment Reconciliation Journal" := 'PAYMTRECON';
+        MODIFY;
+      END;
+
+      WITH SourceCode DO BEGIN
+        INIT;
+        Code := SourceCodeSetup."Payment Reconciliation Journal";
+        Description :=
+          COPYSTR(
+            ObjectTranslation.TranslateObject(
+              ObjectTranslation."Object Type"::Page,PAGE::"Payment Reconciliation Journal"),1,30);
+        INSERT;
+      END;
+    END;
+
+    LOCAL PROCEDURE UpdateItemNextCountingPeriod@3400();
+    VAR
+      Item@1000 : Record 27;
+    BEGIN
+      WITH Item DO
+        IF FINDSET THEN
+          REPEAT
+            ForwardPeriodInfo(
+              "Next Counting Period","Next Counting Start Date","Next Counting End Date");
+            MODIFY;
+          UNTIL NEXT = 0;
+    END;
+
+    LOCAL PROCEDURE UpdateSKUNextCountingPeriod@2200();
+    VAR
+      StockkeepingUnit@1000 : Record 5700;
+    BEGIN
+      WITH StockkeepingUnit DO
+        IF FINDSET THEN
+          REPEAT
+            ForwardPeriodInfo(
+              "Next Counting Period","Next Counting Start Date","Next Counting End Date");
+            MODIFY;
+          UNTIL NEXT = 0;
+    END;
+
+    LOCAL PROCEDURE UpdatePhysInvItemSelNextCountingPeriod@2400();
+    VAR
+      PhysInvtItemSelection@1000 : Record 7380;
+    BEGIN
+      WITH PhysInvtItemSelection DO
+        IF FINDSET THEN
+          REPEAT
+            ForwardPeriodInfo(
+              "Next Counting Period","Next Counting Start Date","Next Counting End Date");
+            MODIFY;
+          UNTIL NEXT = 0;
+    END;
+
+    LOCAL PROCEDURE ForwardPeriodInfo@3000(NextCountingPeriod@1000 : Text[250];VAR NextCountingStartDate@1001 : Date;VAR NextCountingEndDate@1002 : Date);
+    VAR
+      DividerPosition@1003 : Integer;
+    BEGIN
+      DividerPosition := STRPOS(NextCountingPeriod,DividerTxt);
+      IF DividerPosition = 0 THEN
+        EXIT;
+
+      IF NOT (EVALUATE(NextCountingStartDate,COPYSTR(NextCountingPeriod,1,DividerPosition - 1)) AND
+              EVALUATE(NextCountingEndDate,COPYSTR(NextCountingPeriod,DividerPosition + 2)))
+      THEN BEGIN
+        NextCountingStartDate := 0D;
+        NextCountingEndDate := 0D;
+      END;
+    END;
+
+    LOCAL PROCEDURE UpdateICOutboxSalesHeader@8000();
+    VAR
+      ICOutboxSalesHeader@1000 : Record 426;
+    BEGIN
+      // DATABASE::"IC Outbox Sales Header"
+      // One field added,"Promised Delivery Date", and is assigned values from "Requested Delivery Date"
+      UpdateICOutboxInboxTable(
+        DATABASE::"IC Outbox Sales Header",
+        ICOutboxSalesHeader.FIELDNO("Requested Delivery Date"),
+        ICOutboxSalesHeader.FIELDNO("Promised Delivery Date"));
+    END;
+
+    LOCAL PROCEDURE UpdateHandledICOutboxSalesHeader@9000();
+    VAR
+      HandledICOutboxSalesHeader@1000 : Record 430;
+    BEGIN
+      // DATABASE::"Handled IC Outbox Sales Header"
+      // One field added,"Promised Delivery Date", and is assigned values from "Requested Delivery Date"
+      UpdateICOutboxInboxTable(
+        DATABASE::"Handled IC Outbox Sales Header",
+        HandledICOutboxSalesHeader.FIELDNO("Requested Delivery Date"),
+        HandledICOutboxSalesHeader.FIELDNO("Promised Delivery Date"));
+    END;
+
+    LOCAL PROCEDURE UpdateHandledICOutboxSalesLine@1090();
+    VAR
+      HandledICOutboxSalesLine@1000 : Record 431;
+    BEGIN
+      // DATABASE::"Handled IC Outbox Sales Line"
+      // One field added,"Promised Delivery Date", and is assigned values from "Requested Delivery Date"
+      UpdateICOutboxInboxTable(
+        DATABASE::"Handled IC Outbox Sales Line",
+        HandledICOutboxSalesLine.FIELDNO("Requested Delivery Date"),
+        HandledICOutboxSalesLine.FIELDNO("Promised Delivery Date"));
+    END;
+
+    LOCAL PROCEDURE UpdateHandledICOutboxPurchHdr@1091();
+    VAR
+      HandledICOutboxPurchHdr@1000 : Record 432;
+    BEGIN
+      // DATABASE::"Handled IC Outbox Purch. Hdr"
+      // One field added,"Promised Delivery Date", and is assigned values from "Requested Delivery Date"
+      UpdateICOutboxInboxTable(
+        DATABASE::"Handled IC Outbox Purch. Hdr",
+        HandledICOutboxPurchHdr.FIELDNO("Promised Receipt Date"),
+        HandledICOutboxPurchHdr.FIELDNO("Requested Receipt Date"));
+    END;
+
+    LOCAL PROCEDURE UpdateHandledICOutboxPurchLine@1092();
+    VAR
+      HandledICOutboxPurchLine@1000 : Record 433;
+    BEGIN
+      // DATABASE::"Handled IC Outbox Purch. Line"
+      // One field added,"Promised Delivery Date", and is assigned values from "Requested Delivery Date"
+      UpdateICOutboxInboxTable(
+        DATABASE::"Handled IC Outbox Purch. Line",
+        HandledICOutboxPurchLine.FIELDNO("Promised Receipt Date"),
+        HandledICOutboxPurchLine.FIELDNO("Requested Receipt Date"));
+    END;
+
+    LOCAL PROCEDURE UpdateICInboxPurchaseHeader@1093();
+    VAR
+      ICInboxPurchaseHeader@1000 : Record 436;
+    BEGIN
+      // DATABASE::"IC Inbox Purchase Header"
+      // One field added,"Promised Delivery Date", and is assigned values from "Requested Delivery Date"
+      UpdateICOutboxInboxTable(
+        DATABASE::"IC Inbox Purchase Header",
+        ICInboxPurchaseHeader.FIELDNO("Requested Receipt Date"),
+        ICInboxPurchaseHeader.FIELDNO("Promised Receipt Date"));
+    END;
+
+    LOCAL PROCEDURE UpdateHandledICInboxSalesHeader@1094();
+    VAR
+      HandledICInboxSalesHeader@1000 : Record 438;
+    BEGIN
+      // DATABASE::"Handled IC Inbox Sales Header"
+      // One field added,"Promised Delivery Date", and is assigned values from "Requested Delivery Date"
+      UpdateICOutboxInboxTable(
+        DATABASE::"Handled IC Inbox Sales Header",
+        HandledICInboxSalesHeader.FIELDNO("Promised Delivery Date"),
+        HandledICInboxSalesHeader.FIELDNO("Requested Delivery Date"));
+    END;
+
+    LOCAL PROCEDURE UpdateHandledICInboxSalesLine@1095();
+    VAR
+      HandledICInboxSalesLine@1000 : Record 439;
+    BEGIN
+      // DATABASE::"Handled IC Inbox Sales Line"
+      // One field added,"Promised Delivery Date", and is assigned values from "Requested Delivery Date"
+      UpdateICOutboxInboxTable(
+        DATABASE::"Handled IC Inbox Sales Line",
+        HandledICInboxSalesLine.FIELDNO("Promised Delivery Date"),
+        HandledICInboxSalesLine.FIELDNO("Requested Delivery Date"));
+    END;
+
+    LOCAL PROCEDURE UpdateHandledICInboxPurchHeader@1096();
+    VAR
+      HandledICInboxPurchHeader@1000 : Record 440;
+    BEGIN
+      // DATABASE::"Handled IC Inbox Purch. Header"
+      // One field added,"Promised Delivery Date", and is assigned values from "Requested Delivery Date"
+      UpdateICOutboxInboxTable(
+        DATABASE::"Handled IC Inbox Purch. Header",
+        HandledICInboxPurchHeader.FIELDNO("Requested Receipt Date"),
+        HandledICInboxPurchHeader.FIELDNO("Promised Receipt Date"));
+    END;
+
+    LOCAL PROCEDURE UpdateHandledICInboxPurchLine@1097();
+    VAR
+      HandledICInboxPurchLine@1000 : Record 441;
+    BEGIN
+      // DATABASE::"Handled IC Inbox Purch. Line"
+      // One field added,"Promised Receipt Date", and is assigned values from "Requested Receipt Date"
+      // and the field ids are interchanged
+      UpdateICOutboxInboxTable(
+        DATABASE::"Handled IC Inbox Purch. Line",
+        HandledICInboxPurchLine.FIELDNO("Promised Receipt Date"),
+        HandledICInboxPurchLine.FIELDNO("Requested Receipt Date"));
+    END;
+
+    LOCAL PROCEDURE UpdateICOutboxInboxTable@1098(TableNo@1000 : Integer;SourceFieldNo@1001 : Integer;TargetFieldNo@1002 : Integer);
+    VAR
+      RecRef@1003 : RecordRef;
+      FieldRefSource@1004 : FieldRef;
+      FieldRefTarget@1005 : FieldRef;
+    BEGIN
+      WITH RecRef DO BEGIN
+        OPEN(TableNo);
+
+        IF FINDSET(TRUE) THEN
+          REPEAT
+            FieldRefSource := FIELD(SourceFieldNo);
+            FieldRefTarget := FIELD(TargetFieldNo);
+            FieldRefTarget.VALUE := FieldRefSource.VALUE;
+            MODIFY;
+          UNTIL NEXT = 0;
+
+        CLOSE;
+      END;
+    END;
+
+    LOCAL PROCEDURE UpdateDtldCustLedgEntry@5000();
+    VAR
+      DetailedCustLedgEntry@1000 : Record 379;
+    BEGIN
+      DetailedCustLedgEntry.SETFILTER("Entry Type",'<>%1&<>%2',
+        DetailedCustLedgEntry."Entry Type"::Application,DetailedCustLedgEntry."Entry Type"::"Appln. Rounding");
+      DetailedCustLedgEntry.MODIFYALL("Ledger Entry Amount",TRUE);
+    END;
+
+    LOCAL PROCEDURE UpdateDtldVendLedgEntry@7000();
+    VAR
+      DetailedVendLedgEntry@1000 : Record 380;
+    BEGIN
+      DetailedVendLedgEntry.SETFILTER("Entry Type",'<>%1&<>%2',
+        DetailedVendLedgEntry."Entry Type"::Application,DetailedVendLedgEntry."Entry Type"::"Appln. Rounding");
+      DetailedVendLedgEntry.MODIFYALL("Ledger Entry Amount",TRUE);
+    END;
+
+    LOCAL PROCEDURE ProcessReportSelections@501();
+    BEGIN
+      InsertReportSelections;
+      DeleteRemovedReportSelections;
+    END;
+
+    LOCAL PROCEDURE InsertReportSelections@51();
+    VAR
+      ReportSelections@1001 : Record 77;
+    BEGIN
+      WITH ReportSelections DO BEGIN
+        InsertRepSelection(Usage::"Asm. Order",'1',REPORT::"Assembly Order");
+        InsertRepSelection(Usage::"P.Assembly Order",'1',REPORT::"Posted Assembly Order");
+        InsertRepSelection(Usage::"S.Order Pick Instruction",'1',REPORT::"Pick Instruction");
+      END;
+    END;
+
+    LOCAL PROCEDURE InsertRepSelection@52(ReportUsage@1000 : Integer;Sequence@1001 : Code[10];ReportID@1002 : Integer);
+    VAR
+      ReportSelections@1003 : Record 77;
+    BEGIN
+      IF ReportSelections.GET(ReportUsage,Sequence) THEN
+        EXIT;
+
+      ReportSelections.INIT;
+      ReportSelections.Usage := ReportUsage;
+      ReportSelections.Sequence := Sequence;
+      ReportSelections."Report ID" := ReportID;
+      ReportSelections.INSERT;
+    END;
+
+    LOCAL PROCEDURE DeleteRemovedReportSelections@61();
+    VAR
+      ReportSelections@1001 : Record 77;
+      AllObj@1002 : Record 2000000038;
+    BEGIN
+      WITH ReportSelections DO
+        IF FINDSET THEN
+          REPEAT
+            IF NOT AllObj.GET(AllObj."Object Type"::Report,"Report ID") THEN
+              DELETE;
+          UNTIL NEXT = 0;
+    END;
+
+    LOCAL PROCEDURE UpgradeJob@502();
+    BEGIN
+      InitializeJobWIPMethod;
+      UpdateJob;
+    END;
+
+    LOCAL PROCEDURE InitializeJobWIPMethod@5();
+    VAR
+      JobWIPMethod@1001 : Record 1006;
+    BEGIN
+      WITH JobWIPMethod DO BEGIN
+        InsertJobWIPMethod(Text001Txt,Text001Txt,
+          "Recognized Costs"::"At Completion","Recognized Sales"::"At Completion",4);
+        InsertJobWIPMethod(Text002Txt,Text002Txt,
+          "Recognized Costs"::"Cost of Sales","Recognized Sales"::"Contract (Invoiced Price)",2);
+        InsertJobWIPMethod(Text003Txt,Text003Txt,
+          "Recognized Costs"::"Cost Value","Recognized Sales"::"Contract (Invoiced Price)",0);
+        InsertJobWIPMethod(Text004Txt,Text004Txt,
+          "Recognized Costs"::"Usage (Total Cost)","Recognized Sales"::"Sales Value",1);
+        InsertJobWIPMethod(Text006Txt,Text005Txt,
+          "Recognized Costs"::"Usage (Total Cost)","Recognized Sales"::"Percentage of Completion",3);
+      END;
+    END;
+
+    LOCAL PROCEDURE InsertJobWIPMethod@21(Code@1000 : Code[20];Description@1001 : Text[50];RecognizedCosts@1002 : Option;RecognizedSales@1003 : Option;SystemDefinedIndex@1004 : Integer);
+    VAR
+      JobWIPMethod@1005 : Record 1006;
+    BEGIN
+      IF JobWIPMethod.GET(Code) THEN
+        EXIT;
+
+      JobWIPMethod.INIT;
+      JobWIPMethod.Code := Code;
+      JobWIPMethod.Description := Description;
+      JobWIPMethod."WIP Cost" := TRUE;
+      JobWIPMethod."WIP Sales" := TRUE;
+      JobWIPMethod."Recognized Costs" := RecognizedCosts;
+      JobWIPMethod."Recognized Sales" := RecognizedSales;
+      JobWIPMethod.Valid := TRUE;
+      JobWIPMethod."System Defined" := TRUE;
+      JobWIPMethod."System-Defined Index" := SystemDefinedIndex;
+      JobWIPMethod.INSERT;
+    END;
+
+    LOCAL PROCEDURE UpdateJob@6();
+    VAR
+      Job@1001 : Record 167;
+      TempJob@1002 : Record 104050;
+      JobWIPMethod@1003 : Record 1006;
+    BEGIN
+      WITH Job DO
+        IF FINDSET(TRUE) THEN
+          REPEAT
+            TempJob.GET("No.");
+            CASE TempJob."WIP Method" OF
+              TempJob."WIP Method"::"Cost Value":
+                BEGIN
+                  JobWIPMethod.SETRANGE("System-Defined Index",TempJob."WIP Method"::"Cost Value");
+                  JobWIPMethod.FINDFIRST;
+                  "WIP Method" := JobWIPMethod.Code;
+                END;
+              TempJob."WIP Method"::"Sales Value":
+                BEGIN
+                  JobWIPMethod.SETRANGE("System-Defined Index",TempJob."WIP Method"::"Sales Value");
+                  JobWIPMethod.FINDFIRST;
+                  "WIP Method" := JobWIPMethod.Code;
+                END;
+              TempJob."WIP Method"::"Cost of Sales":
+                BEGIN
+                  JobWIPMethod.SETRANGE("System-Defined Index",TempJob."WIP Method"::"Cost of Sales");
+                  JobWIPMethod.FINDFIRST;
+                  "WIP Method" := JobWIPMethod.Code;
+                END;
+              TempJob."WIP Method"::"Percentage of Completion":
+                BEGIN
+                  JobWIPMethod.SETRANGE("System-Defined Index",TempJob."WIP Method"::"Percentage of Completion");
+                  JobWIPMethod.FINDFIRST;
+                  "WIP Method" := JobWIPMethod.Code;
+                END;
+              TempJob."WIP Method"::"Completed Contract":
+                BEGIN
+                  JobWIPMethod.SETRANGE("System-Defined Index",TempJob."WIP Method"::"Completed Contract");
+                  JobWIPMethod.FINDFIRST;
+                  "WIP Method" := JobWIPMethod.Code;
+                END;
+            END;
+
+            IF "Exch. Calculation (Cost)" = "Exch. Calculation (Cost)"::"Fixed FCY" THEN
+              "Exch. Calculation (Cost)" := "Exch. Calculation (Cost)"::"Fixed LCY"
+            ELSE
+              "Exch. Calculation (Cost)" := "Exch. Calculation (Cost)"::"Fixed FCY";
+            MODIFY;
+          UNTIL NEXT = 0;
+
+      TempJob.DELETEALL;
+    END;
+
+    LOCAL PROCEDURE UpdateAsmSetup@50();
+    VAR
+      AsmSetup@1001 : Record 905;
+    BEGIN
+      WITH AsmSetup DO
+        IF NOT GET THEN BEGIN
+          INIT;
+          INSERT;
+        END;
+    END;
+
+    LOCAL PROCEDURE UpdateJobTask@20();
+    VAR
+      JobTask@1001 : Record 1001;
+      JobTaskWIPTotalRange@1004 : Record 1001;
+      FirstJobTaskNo@1003 : Code[20];
+      FirstJobTaskInWIPTotalRange@1002 : Boolean;
+    BEGIN
+      WITH JobTask DO
+        IF FINDSET(TRUE) THEN BEGIN
+          FirstJobTaskInWIPTotalRange := TRUE;
+          REPEAT
+            IF FirstJobTaskInWIPTotalRange THEN BEGIN
+              FirstJobTaskNo := "Job Task No.";
+              FirstJobTaskInWIPTotalRange := FALSE;
+            END;
+            IF "WIP-Total" <> "WIP-Total"::" " THEN BEGIN
+              FirstJobTaskInWIPTotalRange := TRUE;
+
+              IF "WIP-Total" = "WIP-Total"::Excluded THEN BEGIN
+                JobTaskWIPTotalRange.SETRANGE("Job No.","Job No.");
+                JobTaskWIPTotalRange.SETRANGE("Job Task No.",FirstJobTaskNo,"Job Task No.");
+                JobTaskWIPTotalRange.SETRANGE("Job Task Type","Job Task Type"::Posting);
+                JobTaskWIPTotalRange.MODIFYALL("WIP-Total","WIP-Total"::Excluded);
+              END;
+            END;
+          UNTIL NEXT = 0;
+        END;
+    END;
+
+    LOCAL PROCEDURE UpdateJobPlanningLine@27();
+    VAR
+      JobPlanningLine@1001 : Record 1003;
+      TempJobPlanningLine@1002 : Record 104052;
+      JobPlanningLineInvoice@1003 : Record 1022;
+      SalesLine@1004 : Record 37;
+      SalesInvoiceLine@1005 : Record 113;
+      SalesCrMemoLine@1006 : Record 115;
+    BEGIN
+      WITH JobPlanningLine DO
+        IF FINDSET(TRUE) THEN
+          REPEAT
+            IF TempJobPlanningLine.GET("Job No.","Job Task No.","Line No.") THEN BEGIN
+              JobPlanningLineInvoice.INIT;
+              JobPlanningLineInvoice."Job No." := TempJobPlanningLine."Job No.";
+              JobPlanningLineInvoice."Job Task No." := TempJobPlanningLine."Job Task No.";
+              JobPlanningLineInvoice."Job Planning Line No." := TempJobPlanningLine."Line No.";
+              JobPlanningLineInvoice."Document Type" := TempJobPlanningLine."Invoice Type";
+              JobPlanningLineInvoice."Document No." := TempJobPlanningLine."Invoice No.";
+              CASE TempJobPlanningLine."Invoice Type" OF
+                TempJobPlanningLine."Invoice Type"::Invoice,
+                TempJobPlanningLine."Invoice Type"::"Credit Memo":
+                  BEGIN
+                    SalesLine.SETCURRENTKEY("Job Contract Entry No.");
+                    SalesLine.SETRANGE("Job Contract Entry No.","Job Contract Entry No.");
+                    IF SalesLine.FINDFIRST THEN
+                      JobPlanningLineInvoice."Line No." := SalesLine."Line No.";
+                  END;
+                TempJobPlanningLine."Invoice Type"::"Posted Invoice":
+                  BEGIN
+                    SalesInvoiceLine.SETCURRENTKEY("Job Contract Entry No.");
+                    SalesInvoiceLine.SETRANGE("Job Contract Entry No.","Job Contract Entry No.");
+                    IF SalesInvoiceLine.FINDFIRST THEN
+                      JobPlanningLineInvoice."Line No." := SalesInvoiceLine."Line No.";
+                  END;
+                TempJobPlanningLine."Invoice Type"::"Posted Credit Memo":
+                  BEGIN
+                    SalesCrMemoLine.SETCURRENTKEY("Job Contract Entry No.");
+                    SalesCrMemoLine.SETRANGE("Job Contract Entry No.","Job Contract Entry No.");
+                    IF SalesCrMemoLine.FINDFIRST THEN
+                      JobPlanningLineInvoice."Line No." := SalesCrMemoLine."Line No.";
+                  END;
+              END;
+              JobPlanningLineInvoice."Quantity Transferred" := Quantity;
+              JobPlanningLineInvoice."Transferred Date" := TempJobPlanningLine."Transferred Date";
+              JobPlanningLineInvoice."Invoiced Date" := TempJobPlanningLine."Invoiced Date";
+              JobPlanningLineInvoice."Invoiced Amount (LCY)" := TempJobPlanningLine."Invoiced Amount (LCY)";
+              JobPlanningLineInvoice."Invoiced Cost Amount (LCY)" := TempJobPlanningLine."Invoiced Cost Amount (LCY)";
+              JobPlanningLineInvoice."Job Ledger Entry No." := TempJobPlanningLine."Job Ledger Entry No.";
+              JobPlanningLineInvoice.INSERT;
+
+              UpdateQtyToTransfer;
+              UpdateQtyToInvoice;
+              MODIFY;
+            END;
+          UNTIL NEXT = 0;
+
+      TempJobPlanningLine.DELETEALL;
+    END;
+
+    LOCAL PROCEDURE UpdateJobWIPGLEntry@7();
+    VAR
+      JobWIPGLEntry@1001 : Record 1005;
+      TempJobWIPGLEntry@1002 : Record 104051;
+      JobWIPMethod@1003 : Record 1006;
+      JobWIPTotal@1005 : Record 1021;
+      TempAccountNo@1004 : Code[20];
+    BEGIN
+      WITH JobWIPGLEntry DO
+        IF FINDSET(TRUE) THEN
+          REPEAT
+            TempJobWIPGLEntry.GET("Entry No.");
+            CASE TempJobWIPGLEntry."WIP Method Used" OF
+              TempJobWIPGLEntry."WIP Method Used"::" ":
+                "WIP Method Used" := '';
+              TempJobWIPGLEntry."WIP Method Used"::"Cost Value":
+                BEGIN
+                  JobWIPMethod.SETRANGE("System-Defined Index",TempJobWIPGLEntry."WIP Method Used"::"Cost Value" - 1);
+                  JobWIPMethod.FINDFIRST;
+                  "WIP Method Used" := JobWIPMethod.Code;
+                END;
+              TempJobWIPGLEntry."WIP Method Used"::"Sales Value":
+                BEGIN
+                  JobWIPMethod.SETRANGE("System-Defined Index",TempJobWIPGLEntry."WIP Method Used"::"Sales Value" - 1);
+                  JobWIPMethod.FINDFIRST;
+                  "WIP Method Used" := JobWIPMethod.Code;
+                END;
+              TempJobWIPGLEntry."WIP Method Used"::"Cost of Sales":
+                BEGIN
+                  JobWIPMethod.SETRANGE("System-Defined Index",TempJobWIPGLEntry."WIP Method Used"::"Cost of Sales" - 1);
+                  JobWIPMethod.FINDFIRST;
+                  "WIP Method Used" := JobWIPMethod.Code;
+                END;
+              TempJobWIPGLEntry."WIP Method Used"::"Percentage of Completion":
+                BEGIN
+                  JobWIPMethod.SETRANGE("System-Defined Index",TempJobWIPGLEntry."WIP Method Used"::"Percentage of Completion" - 1);
+                  JobWIPMethod.FINDFIRST;
+                  "WIP Method Used" := JobWIPMethod.Code;
+                END;
+              TempJobWIPGLEntry."WIP Method Used"::"Completed Contract":
+                BEGIN
+                  JobWIPMethod.SETRANGE("System-Defined Index",TempJobWIPGLEntry."WIP Method Used"::"Completed Contract" - 1);
+                  JobWIPMethod.FINDFIRST;
+                  "WIP Method Used" := JobWIPMethod.Code;
+                END;
+            END;
+
+            Reverse := TRUE;
+            TempAccountNo := "G/L Account No.";
+            "G/L Account No." := "G/L Bal. Account No.";
+            "G/L Bal. Account No." := TempAccountNo;
+            "WIP Entry Amount" := -"WIP Entry Amount";
+
+            CLEAR(JobWIPTotal);
+            JobWIPTotal.INIT;
+            JobWIPTotal."Job No." := "Job No.";
+            JobWIPTotal."WIP Method" := "WIP Method Used";
+            JobWIPTotal."WIP Posting Date" := "WIP Posting Date";
+            JobWIPTotal."WIP Posting Date Filter" := TempJobWIPGLEntry."WIP Posting Date Filter";
+            JobWIPTotal."WIP Planning Date Filter" := TempJobWIPGLEntry."WIP Planning Date Filter";
+            JobWIPTotal."Posted to G/L" := TRUE;
+            JobWIPTotal."Schedule (Total Cost)" := TempJobWIPGLEntry."WIP Schedule (Total Cost)";
+            JobWIPTotal."Schedule (Total Price)" := TempJobWIPGLEntry."WIP Schedule (Total Price)";
+            JobWIPTotal."Usage (Total Cost)" := TempJobWIPGLEntry."WIP Usage (Total Cost)";
+            JobWIPTotal."Usage (Total Price)" := TempJobWIPGLEntry."WIP Usage (Total Price)";
+            JobWIPTotal."Contract (Total Cost)" := TempJobWIPGLEntry."WIP Contract (Total Cost)";
+            JobWIPTotal."Contract (Total Price)" := TempJobWIPGLEntry."WIP Contract (Total Price)";
+            JobWIPTotal."Contract (Invoiced Price)" := TempJobWIPGLEntry."WIP (Invoiced Price)";
+            JobWIPTotal."Contract (Invoiced Cost)" := TempJobWIPGLEntry."WIP (Invoiced Cost)";
+            JobWIPTotal.INSERT;
+
+            "Job WIP Total Entry No." := JobWIPTotal."Entry No.";
+            MODIFY;
+          UNTIL NEXT = 0;
+
+      TempJobWIPGLEntry.DELETEALL;
+    END;
+
+    LOCAL PROCEDURE UpdatePurchaseLine@25();
+    VAR
+      PurchaseLine@1001 : Record 39;
+      Currency@1002 : Record 4;
+      UpgradeSQLMgt@1004 : Codeunit 104050;
+      NoOfDecimals@1003 : Integer;
+    BEGIN
+      WITH PurchaseLine DO BEGIN
+        Currency.InitRoundingPrecision;
+        CASE Currency."Amount Rounding Precision" OF
+          0.1:
+            NoOfDecimals := 1;
+          0.01:
+            NoOfDecimals := 2;
+          0.001:
+            NoOfDecimals := 3;
+        END;
+
+        UpgradeSQLMgt.ExecuteSQLCommand(
+          STRSUBSTNO(
+            'update [%1] set [%2] = ROUND([%3] / (1 + [%4] / 100),%5)',
+            UpgradeSQLMgt.GetFullTableNameSQL(DATABASE::"Purchase Line"),
+            UpgradeSQLMgt.StringConvert(FIELDNAME("Outstanding Amt. Ex. VAT (LCY)")),
+            UpgradeSQLMgt.StringConvert(FIELDNAME("Outstanding Amount (LCY)")),
+            UpgradeSQLMgt.StringConvert(FIELDNAME("VAT %")),NoOfDecimals));
+
+        UpgradeSQLMgt.ExecuteSQLCommand(
+          STRSUBSTNO(
+            'update [%1] set [%2] = ROUND([%3] / (1 + [%4] / 100),%5)',
+            UpgradeSQLMgt.GetFullTableNameSQL(DATABASE::"Purchase Line"),
+            UpgradeSQLMgt.StringConvert(FIELDNAME("A. Rcd. Not Inv. Ex. VAT (LCY)")),
+            UpgradeSQLMgt.StringConvert(FIELDNAME("Amt. Rcd. Not Invoiced (LCY)")),
+            UpgradeSQLMgt.StringConvert(FIELDNAME("VAT %")),NoOfDecimals));
+      END;
+    END;
+
+    LOCAL PROCEDURE UpdateItem@8();
+    VAR
+      Item@1000 : Record 27;
+      TempItemEmptyBUoM@1002 : Record 104076;
+    BEGIN
+      WITH Item DO
+        IF FINDSET(TRUE) THEN
+          REPEAT
+            "Rescheduling Period" := "Time Bucket";
+            "Lot Accumulation Period" := "Time Bucket";
+            IF TempItemEmptyBUoM.GET("No.") THEN
+              "Base Unit of Measure" := TempItemEmptyBUoM."Base Unit of Measure";
+            MODIFY;
+          UNTIL NEXT = 0;
+    END;
+
+    LOCAL PROCEDURE UpdateSKUPlanningParameters@9();
+    VAR
+      StockkeepingUnit@1000 : Record 5700;
+    BEGIN
+      WITH StockkeepingUnit DO
+        IF FIND('-') THEN
+          REPEAT
+            "Rescheduling Period" := "Time Bucket";
+            "Lot Accumulation Period" := "Time Bucket";
+            MODIFY;
+          UNTIL NEXT = 0;
+    END;
+
+    LOCAL PROCEDURE UpdateProd@1012();
+    BEGIN
+      UpdateProdRtngLocationBinCodes;
+      UpdateProdCompBinCodes;
+      UpdateProdOrderCapacityNeed;
+      UpdateProdOrderRoutingLine;
+    END;
+
+    LOCAL PROCEDURE UpdateProdRtngLocationBinCodes@24();
+    VAR
+      ProdOrderRoutingLine@1000 : Record 5409;
+    BEGIN
+      // populate location of the routing lines from production order line
+      ProdOrderRoutingLine.SETCURRENTKEY(Status);
+      ProdOrderRoutingLine.SETFILTER(Status,'<>%1',ProdOrderRoutingLine.Status::Finished);
+      WITH ProdOrderRoutingLine DO
+        IF FIND('-') THEN
+          REPEAT
+            IF "Location Code" = '' THEN BEGIN
+              FillDefaultLocationAndBins;
+              MODIFY(TRUE);
+            END;
+          UNTIL NEXT = 0;
+    END;
+
+    LOCAL PROCEDURE UpdateProdCompBinCodes@220();
+    VAR
+      ProdOrderComp@1001 : Record 5407;
+    BEGIN
+      // populate empty bin codes on prod. order components from the location card
+      ProdOrderComp.SETCURRENTKEY(Status,"Prod. Order No.","Location Code");
+      ProdOrderComp.SETFILTER(Status,'<>%1',ProdOrderComp.Status::Finished);
+      ProdOrderComp.SETFILTER("Location Code",'<>%1','');
+      WITH ProdOrderComp DO
+        IF FIND('-') THEN
+          REPEAT
+            IF "Bin Code" = '' THEN BEGIN
+              GetDefaultBin;
+              MODIFY(TRUE);
+            END;
+          UNTIL NEXT = 0;
+    END;
+
+    LOCAL PROCEDURE UpdateProdOrderCapacityNeed@65();
+    VAR
+      ProdOrderCapacityNeed@1001 : Record 5410;
+      WorkCenter@1002 : Record 99000754;
+      CalendarMgt@1003 : Codeunit 99000755;
+    BEGIN
+      // populate 'Needed Time (ms)' from 'Needed Time'
+      WITH ProdOrderCapacityNeed DO
+        IF FIND('-') THEN
+          REPEAT
+            IF "Needed Time (ms)" = 0 THEN
+              IF WorkCenter.GET("Work Center No.") THEN BEGIN
+                "Needed Time (ms)" := "Needed Time" * CalendarMgt.TimeFactor(WorkCenter."Unit of Measure Code");
+                MODIFY(TRUE);
+              END;
+          UNTIL NEXT = 0;
+    END;
+
+    LOCAL PROCEDURE UpdateProdOrderRoutingLine@66();
+    VAR
+      ProdOrderRoutingLine@1001 : Record 5409;
+      WorkCenter@1002 : Record 99000754;
+      CalendarMgt@1003 : Codeunit 99000755;
+    BEGIN
+      // calculate correct 'Expected Capacity Need'
+      WITH ProdOrderRoutingLine DO
+        IF FIND('-') THEN
+          REPEAT
+            IF WorkCenter.GET("Work Center No.") THEN BEGIN
+              "Expected Capacity Need" := "Expected Capacity Need" * CalendarMgt.TimeFactor(WorkCenter."Unit of Measure Code");
+              MODIFY(FALSE);
+            END;
+          UNTIL NEXT = 0;
+    END;
+
+    LOCAL PROCEDURE OnlineMapSetup@23();
+    VAR
+      OnlineMapMgt@1001 : Codeunit 802;
+    BEGIN
+      OnlineMapMgt.SetupDefault;
+    END;
+
+    LOCAL PROCEDURE UpdateServLine@53();
+    VAR
+      ServLine@1001 : Record 5902;
+    BEGIN
+      WITH ServLine DO
+        IF FIND('-') THEN
+          REPEAT
+            "Needed by Date" := "Posting Date";
+            "Promised Delivery Date" := "Posting Date";
+            "Planned Delivery Date" := "Posting Date";
+
+            CALCFIELDS("Reserved Quantity");
+            Planned := "Reserved Quantity" = "Outstanding Quantity";
+            MODIFY;
+          UNTIL NEXT = 0;
+    END;
+
+    LOCAL PROCEDURE UpdateServiceLedgerEntry@54();
+    VAR
+      ServiceLedgerEntry@1000 : Record 5907;
+    BEGIN
+      WITH ServiceLedgerEntry DO BEGIN
+        SETRANGE(Type,Type::"Service Contract");
+        IF FINDSET(TRUE) THEN
+          REPEAT
+            "Cost Amount" := -"Cost Amount";
+            MODIFY;
+          UNTIL NEXT = 0;
+      END;
+    END;
+
+    LOCAL PROCEDURE UpdateItemTrackingCodes@26();
+    VAR
+      ItemTrackingCode@1001 : Record 6502;
+    BEGIN
+      WITH ItemTrackingCode DO
+        IF FINDSET(TRUE) THEN
+          REPEAT
+            IF "SN Specific Tracking" THEN BEGIN
+              "SN Assembly Inbound Tracking" := TRUE;
+              "SN Assembly Outbound Tracking" := TRUE;
+              MODIFY;
+            END;
+            IF "Lot Specific Tracking" THEN BEGIN
+              "Lot Assembly Inbound Tracking" := TRUE;
+              "Lot Assembly Outbound Tracking" := TRUE;
+              MODIFY;
+            END;
+          UNTIL NEXT = 0;
+    END;
+
+    LOCAL PROCEDURE UpdateItemJournalLine@29();
+    VAR
+      ItemJournalLine@1000 : Record 83;
+      TempItemJournalLine@1001 : Record 104070;
+    BEGIN
+      WITH TempItemJournalLine DO BEGIN
+        IF FINDSET(TRUE) THEN
+          REPEAT
+            IF ItemJournalLine.GET("Journal Template Name","Journal Batch Name","Line No.") THEN BEGIN
+              UpdateOrderTypeFields(
+                "Order Type",
+                "Order No.",
+                "Order Line No.",
+                ItemJournalLine."Order Type",
+                ItemJournalLine."Order No.",
+                ItemJournalLine."Order Line No.",
+                ItemJournalLine.TABLECAPTION,
+                ItemJournalLine.GETPOSITION(TRUE));
+              ItemJournalLine.MODIFY;
+            END;
+          UNTIL NEXT = 0;
+        DELETEALL;
+      END;
+    END;
+
+    LOCAL PROCEDURE UpdateTempItemLedgerEntry@30();
+    VAR
+      ItemLedgerEntry@1000 : Record 32;
+      TempItemLedgerEntry@1001 : Record 104071;
+    BEGIN
+      WITH TempItemLedgerEntry DO BEGIN
+        IF FINDSET(TRUE) THEN
+          REPEAT
+            ItemLedgerEntry.GET("Entry No.");
+            UpdateOrderTypeFields(
+              "Order Type",
+              "Order No.",
+              "Order Line No.",
+              ItemLedgerEntry."Order Type",
+              ItemLedgerEntry."Order No.",
+              ItemLedgerEntry."Order Line No.",
+              TABLECAPTION,GETPOSITION(TRUE));
+            ItemLedgerEntry.MODIFY;
+          UNTIL NEXT = 0;
+        DELETEALL;
+      END;
+    END;
+
+    LOCAL PROCEDURE UpdateValueEntry@31();
+    VAR
+      ValueEntry@1000 : Record 5802;
+      TempValueEntry@1001 : Record 104072;
+    BEGIN
+      WITH TempValueEntry DO BEGIN
+        IF FINDSET(TRUE) THEN
+          REPEAT
+            ValueEntry.GET("Entry No.");
+            UpdateOrderTypeFields(
+              "Order Type",
+              "Order No.",
+              "Order Line No.",
+              ValueEntry."Order Type",
+              ValueEntry."Order No.",
+              ValueEntry."Order Line No.",
+              ValueEntry.TABLECAPTION,
+              ValueEntry.GETPOSITION(TRUE));
+            ValueEntry.MODIFY;
+          UNTIL NEXT = 0;
+        DELETEALL;
+      END;
+    END;
+
+    LOCAL PROCEDURE UpdateCostShareBuffer@32();
+    VAR
+      CostShareBuffer@1000 : Record 5848;
+      TempCostShareBuffer@1001 : Record 104073;
+    BEGIN
+      WITH CostShareBuffer DO
+        IF FINDSET(TRUE) THEN
+          REPEAT
+            IF TempCostShareBuffer.GET("Item Ledger Entry No.","Capacity Ledger Entry No.") THEN BEGIN
+              UpdateOrderTypeFields(
+                TempCostShareBuffer."Order Type",
+                TempCostShareBuffer."Order No.",
+                TempCostShareBuffer."Order Line No.",
+                "Order Type",
+                "Order No.",
+                "Order Line No.",
+                TABLECAPTION,GETPOSITION(TRUE));
+              TempCostShareBuffer.DELETE;
+            END;
+            MODIFY;
+          UNTIL NEXT = 0;
+    END;
+
+    LOCAL PROCEDURE UpdateCapacityLedgerEntry@33();
+    VAR
+      CapacityLedgerEntry@1000 : Record 5832;
+      TempCapacityLedgerEntry@1001 : Record 104074;
+    BEGIN
+      WITH TempCapacityLedgerEntry DO BEGIN
+        IF FINDSET(TRUE) THEN
+          REPEAT
+            IF CapacityLedgerEntry.GET("Entry No.") THEN BEGIN
+              UpdateOrderTypeFields(
+                "Order Type",
+                "Order No.",
+                "Order Line No.",
+                CapacityLedgerEntry."Order Type",
+                CapacityLedgerEntry."Order No.",
+                CapacityLedgerEntry."Order Line No.",
+                CapacityLedgerEntry.TABLECAPTION,
+                CapacityLedgerEntry.GETPOSITION(TRUE));
+              CapacityLedgerEntry.MODIFY;
+            END;
+          UNTIL NEXT = 0;
+        DELETEALL;
+      END;
+    END;
+
+    LOCAL PROCEDURE UpdateOrderTypeFields@34(OrdType@1000 : Option;OrderNo@1001 : Code[20];OrderLineNo@1002 : Integer;VAR ActOrdType@1003 : Option;VAR ActOrderNo@1004 : Code[20];VAR ActOrderLineNo@1005 : Integer;TextTableCaption@1006 : Text[30];RecordKey@1007 : Text[250]);
+    VAR
+      OrderType@1008 : ' ,Production,Transfer,Service';
+    BEGIN
+      IF NOT (OrdType IN [OrderType::Production,OrderType::Transfer,OrderType::Service]) THEN
+        ERROR(Text007Err,
+          OrderType::Production,OrderType::Transfer,OrderType::Service,
+          TextTableCaption,RecordKey);
+      ActOrdType := OrdType;
+      ActOrderNo := OrderNo;
+      ActOrderLineNo := OrderLineNo;
+    END;
+
+    LOCAL PROCEDURE UpdateBinDedicatedField@28();
+    VAR
+      Location@1002 : Record 14;
+    BEGIN
+      WITH Location DO
+        IF FINDSET(TRUE) THEN
+          REPEAT
+            DedicateBin(Code,"To-Production Bin Code");
+            DedicateBin(Code,"From-Production Bin Code");
+            DedicateBin(Code,"Open Shop Floor Bin Code");
+            DedicateBin(Code,"To-Assembly Bin Code");
+            DedicateBin(Code,"From-Assembly Bin Code");
+          UNTIL NEXT = 0;
+    END;
+
+    LOCAL PROCEDURE DedicateBin@37(LocationCode@1000 : Code[20];BinCode@1001 : Code[20]);
+    VAR
+      Bin@1002 : Record 7354;
+      BinContent@1003 : Record 7302;
+    BEGIN
+      IF BinCode = '' THEN
+        EXIT;
+
+      Bin.GET(LocationCode,BinCode);
+      Bin.Dedicated := TRUE;
+      Bin.MODIFY;
+
+      BinContent.SETRANGE("Location Code",LocationCode);
+      BinContent.SETRANGE("Bin Code",BinCode);
+      BinContent.MODIFYALL(Dedicated,TRUE);
+    END;
+
+    LOCAL PROCEDURE UpdateInvtAdmtEntryOrder@36();
+    VAR
+      InventoryAdjmtEntryOrder@1001 : Record 5896;
+      TempInvtAdjmtEntryOrd@1002 : Record 104080;
+    BEGIN
+      WITH InventoryAdjmtEntryOrder DO
+        IF TempInvtAdjmtEntryOrd.FINDSET(TRUE) THEN
+          REPEAT
+            INIT;
+            TRANSFERFIELDS(TempInvtAdjmtEntryOrd);
+            INSERT;
+            TempInvtAdjmtEntryOrd.DELETE;
+          UNTIL TempInvtAdjmtEntryOrd.NEXT = 0;
+    END;
+
+    LOCAL PROCEDURE UpdateWarrantyLedgerEntry@46();
+    VAR
+      TempWarrantyLedgerEntry@1001 : TEMPORARY Record 5908;
+      TempServiceLine@1000 : TEMPORARY Record 5902;
+      WarrantyLedgerEntry@1003 : Record 5908;
+    BEGIN
+      WITH WarrantyLedgerEntry DO
+        IF UpdateWarrantyLedgerEntryShipmentLineNo(TempWarrantyLedgerEntry) THEN BEGIN
+          CollectServiceLines(TempServiceLine,TempWarrantyLedgerEntry);
+          HandleServiceLines(TempServiceLine,TempWarrantyLedgerEntry);
+        END;
+    END;
+
+    LOCAL PROCEDURE UpdateWarrantyLedgerEntryShipmentLineNo@45(VAR TempWarrantyLedgerEntry@1001 : TEMPORARY Record 5908) : Boolean;
+    VAR
+      WarrantyLedgerEntry@1000 : Record 5908;
+      ServiceShipmentLine@1005 : Record 5991;
+      TempWarrantyLedgerEntry2@1008 : TEMPORARY Record 5908;
+    BEGIN
+      // Find WLE's which have corresponding service orders:
+      WarrantyLedgerEntry.RESET;
+      IF NOT WarrantyLedgerEntry.FIND('-') THEN
+        EXIT(FALSE);
+
+      TempWarrantyLedgerEntry.DELETEALL;
+
+      // Warranty ledger entries that still have a service order:
+      REPEAT
+        TempWarrantyLedgerEntry := WarrantyLedgerEntry;
+        TempWarrantyLedgerEntry.INSERT;
+      UNTIL WarrantyLedgerEntry.NEXT = 0;
+
+      IF NOT TempWarrantyLedgerEntry.FIND('-') THEN
+        EXIT(FALSE);
+
+      // Find occurrences of: Shipment no, Order No, Type, No, Dimension Set ID, Quantity
+      TempWarrantyLedgerEntry2.DELETEALL;
+      REPEAT
+        TransferFilters(TempWarrantyLedgerEntry,TempWarrantyLedgerEntry2);
+        IF TempWarrantyLedgerEntry2.ISEMPTY THEN BEGIN
+          TempWarrantyLedgerEntry2.RESET;
+          TempWarrantyLedgerEntry2 := TempWarrantyLedgerEntry;
+          TempWarrantyLedgerEntry2.INSERT;
+        END;
+      UNTIL TempWarrantyLedgerEntry.NEXT = 0;
+
+      // For each occurrence transfer values to the temporary variable:
+      TempWarrantyLedgerEntry2.RESET;
+      TempWarrantyLedgerEntry2.FIND('-');
+      REPEAT
+        TransferFilters(TempWarrantyLedgerEntry2,TempWarrantyLedgerEntry);
+        TransferFiltersShpmntLines(TempWarrantyLedgerEntry2,ServiceShipmentLine);
+        IF TempWarrantyLedgerEntry.COUNT = ServiceShipmentLine.COUNT THEN BEGIN
+          TempWarrantyLedgerEntry.FIND('-');
+          ServiceShipmentLine.FIND('-');
+          REPEAT
+            IF TempWarrantyLedgerEntry."Service Order Line No." = 0 THEN BEGIN
+              TempWarrantyLedgerEntry."Service Order Line No." := ServiceShipmentLine."Order Line No.";
+              TempWarrantyLedgerEntry.MODIFY;
+            END;
+          UNTIL (TempWarrantyLedgerEntry.NEXT = 0) AND (ServiceShipmentLine.NEXT = 0);
+        END;
+      UNTIL TempWarrantyLedgerEntry2.NEXT = 0;
+
+      // Transfer to database:
+      TempWarrantyLedgerEntry.RESET;
+      TempWarrantyLedgerEntry.FIND('-');
+      REPEAT
+        WarrantyLedgerEntry.GET(TempWarrantyLedgerEntry."Entry No.");
+        WarrantyLedgerEntry."Service Order Line No." := TempWarrantyLedgerEntry."Service Order Line No.";
+        WarrantyLedgerEntry.MODIFY;
+      UNTIL TempWarrantyLedgerEntry.NEXT = 0;
+
+      EXIT(TRUE);
+    END;
+
+    LOCAL PROCEDURE CollectServiceLines@44(VAR TempServiceLine@1000 : TEMPORARY Record 5902;VAR WarrantyLedgerEntry@1001 : Record 5908);
+    BEGIN
+      TempServiceLine.DELETEALL;
+      WITH WarrantyLedgerEntry DO BEGIN
+        FIND('-');
+        REPEAT
+          TempServiceLine.INIT;
+          TempServiceLine."Document Type" := TempServiceLine."Document Type"::Order;
+          TempServiceLine."Document No." := "Service Order No.";
+          TempServiceLine."Line No." := "Service Order Line No.";
+          IF TempServiceLine.INSERT THEN;
+        UNTIL NEXT = 0;
+      END;
+    END;
+
+    LOCAL PROCEDURE HandleServiceLines@43(VAR TempServiceLine@1000 : TEMPORARY Record 5902;VAR WarrantyLedgerEntry@1001 : Record 5908);
+    BEGIN
+      TempServiceLine.FIND('-');
+      WarrantyLedgerEntry.SETCURRENTKEY("Service Order No.");
+      REPEAT
+        TreatCorrespondingWLEntries(TempServiceLine,WarrantyLedgerEntry);
+      UNTIL TempServiceLine.NEXT = 0;
+    END;
+
+    LOCAL PROCEDURE TreatCorrespondingWLEntries@42(VAR ServiceLine@1000 : Record 5902;VAR WarrantyLedgerEntry@1001 : Record 5908);
+    VAR
+      WarrantyLedgerEntry2@1004 : Record 5908;
+      ServiceLine2@1005 : Record 5902;
+      ConsumedInvoicedQty@1003 : Decimal;
+      Reduction@1002 : Decimal;
+    BEGIN
+      WITH WarrantyLedgerEntry DO BEGIN
+        SETRANGE("Service Order No.",ServiceLine."Document No.");
+        SETRANGE("Service Order Line No.",ServiceLine."Line No.");
+        MODIFYALL(Open,FALSE);
+
+        IF NOT ServiceLine2.GET(ServiceLine."Document Type",ServiceLine."Document No.",ServiceLine."Line No.") THEN
+          EXIT;
+
+        ConsumedInvoicedQty := ServiceLine2."Quantity Invoiced" + ServiceLine2."Quantity Consumed";
+
+        FIND('-');
+        REPEAT
+          IF ConsumedInvoicedQty < Quantity THEN
+            Reduction := ConsumedInvoicedQty
+          ELSE
+            Reduction := Quantity;
+          ConsumedInvoicedQty -= Reduction;
+          Quantity -= Reduction;
+          MODIFY;
+        UNTIL (NEXT = 0) OR (ConsumedInvoicedQty <= 0);
+
+        FIND('-');
+        REPEAT
+          IF Quantity > 0 THEN BEGIN
+            Open := TRUE;
+            MODIFY;
+          END;
+        UNTIL NEXT = 0;
+
+        FIND('-');
+        REPEAT
+          WarrantyLedgerEntry2.GET("Entry No.");
+          IF WarrantyLedgerEntry2.Open <> Open THEN BEGIN
+            WarrantyLedgerEntry2.Open := Open;
+            WarrantyLedgerEntry2.MODIFY;
+          END;
+        UNTIL NEXT = 0;
+      END;
+    END;
+
+    LOCAL PROCEDURE TransferFilters@38(VAR TempWarrantyLedgerEntryFrom@1000 : TEMPORARY Record 5908;VAR TempWarrantyLedgerEntryTo@1001 : TEMPORARY Record 5908);
+    BEGIN
+      TempWarrantyLedgerEntryTo.RESET;
+      TempWarrantyLedgerEntryTo.SETRANGE("Document No.",TempWarrantyLedgerEntryFrom."Document No.");
+      TempWarrantyLedgerEntryTo.SETRANGE("Service Order No.",TempWarrantyLedgerEntryFrom."Service Order No.");
+      TempWarrantyLedgerEntryTo.SETRANGE(Type,TempWarrantyLedgerEntryFrom.Type);
+      TempWarrantyLedgerEntryTo.SETRANGE("No.",TempWarrantyLedgerEntryFrom."No.");
+      TempWarrantyLedgerEntryTo.SETRANGE("Dimension Set ID",TempWarrantyLedgerEntryFrom."Dimension Set ID");
+      TempWarrantyLedgerEntryTo.SETRANGE(Quantity,TempWarrantyLedgerEntryFrom.Quantity);
+    END;
+
+    LOCAL PROCEDURE TransferFiltersShpmntLines@35(VAR TempWarrantyLedgerEntry@1001 : TEMPORARY Record 5908;VAR ServiceShipmentLine@1000 : Record 5991);
+    BEGIN
+      WITH ServiceShipmentLine DO BEGIN
+        RESET;
+        SETRANGE("Document No.",TempWarrantyLedgerEntry."Document No.");
+        SETRANGE("Order No.",TempWarrantyLedgerEntry."Service Order No.");
+        SETRANGE(Type,TempWarrantyLedgerEntry.Type);
+        SETRANGE("No.",TempWarrantyLedgerEntry."No.");
+        SETRANGE("Dimension Set ID",TempWarrantyLedgerEntry."Dimension Set ID");
+        SETRANGE(Quantity,TempWarrantyLedgerEntry.Quantity);
+      END;
+    END;
+
+    LOCAL PROCEDURE UpdateItemApplnEntryHistory@41();
+    VAR
+      ItemApplnEntryHistory@1000 : Record 343;
+      TempItemApplnEntryHistory@1001 : Record 104075;
+    BEGIN
+      WITH TempItemApplnEntryHistory DO BEGIN
+        IF FINDSET(TRUE) THEN
+          REPEAT
+            ItemApplnEntryHistory.INIT;
+            ItemApplnEntryHistory.TRANSFERFIELDS(TempItemApplnEntryHistory);
+            ItemApplnEntryHistory."Primary Entry No." := "Primary Entry No.";
+            ItemApplnEntryHistory.INSERT;
+          UNTIL NEXT = 0;
+        DELETEALL;
+      END;
+    END;
+
+    LOCAL PROCEDURE UpdateBOMComp@48();
+    VAR
+      BOMComp@1001 : Record 90;
+      TempBOMComp@1002 : Record 104083;
+    BEGIN
+      WITH BOMComp DO
+        IF TempBOMComp.FINDSET(TRUE) THEN
+          REPEAT
+            GET(TempBOMComp."Parent Item No.",TempBOMComp."Line No.");
+            EVALUATE("Lead-Time Offset",STRSUBSTNO('<%1D>',TempBOMComp."Production Lead Time"));
+            MODIFY;
+          UNTIL TempBOMComp.NEXT = 0;
+
+      TempBOMComp.DELETEALL;
+    END;
+
+    LOCAL PROCEDURE UpdateItemLedgerEntry@49();
+    VAR
+      ItemLedgerEntry@1001 : Record 32;
+      ValueEntry@1002 : Record 5802;
+    BEGIN
+      WITH ItemLedgerEntry DO BEGIN
+        SETRANGE("Entry Type","Entry Type"::"Positive Adjmt.");
+        SETRANGE("Source Type","Source Type"::Customer);
+        SETRANGE("Document Type","Document Type"::"Service Shipment");
+        SETRANGE(Correction,FALSE);
+        IF NOT ISEMPTY THEN BEGIN
+          MODIFYALL(Correction,TRUE);
+          SETRANGE(Correction,TRUE);
+          MODIFYALL("Entry Type","Entry Type"::"Negative Adjmt.");
+        END;
+
+        SETRANGE("Entry Type","Entry Type"::"Negative Adjmt.");
+        IF FINDSET THEN
+          REPEAT
+            ValueEntry.SETCURRENTKEY("Item Ledger Entry No.");
+            ValueEntry.SETRANGE("Item Ledger Entry No.","Entry No.");
+            ValueEntry.SETRANGE("Item Ledger Entry Type","Entry Type"::"Positive Adjmt.");
+            IF NOT ValueEntry.ISEMPTY THEN
+              ValueEntry.MODIFYALL(ValueEntry."Item Ledger Entry Type","Entry Type"::"Negative Adjmt.");
+          UNTIL NEXT = 0;
+      END;
+    END;
+
+    LOCAL PROCEDURE UpdateDOCreditCard@55();
+    VAR
+      DOPaymentCreditCard@1001 : Record 827;
+      TempDOPaymentCreditCard@1002 : Record 104086;
+    BEGIN
+      WITH DOPaymentCreditCard DO
+        IF TempDOPaymentCreditCard.FINDSET(TRUE) THEN
+          REPEAT
+            GET(TempDOPaymentCreditCard."No.");
+            "Cvc No." := FORMAT(TempDOPaymentCreditCard."Cvc No.",-4);
+            MODIFY;
+          UNTIL TempDOPaymentCreditCard.NEXT = 0;
+
+      TempDOPaymentCreditCard.DELETEALL;
+    END;
+
+    LOCAL PROCEDURE UpdateSalesOrderDate@56();
+    VAR
+      ICInboxPurchaseLine@1001 : Record 437;
+    BEGIN
+      WITH ICInboxPurchaseLine DO
+        IF FINDSET THEN
+          REPEAT
+            "Requested Receipt Date" := "Promised Receipt Date";
+            "Promised Receipt Date" := 0D;
+            MODIFY;
+          UNTIL NEXT = 0;
+    END;
+
+    LOCAL PROCEDURE UpdateSalesLines@62();
+    VAR
+      SalesLine@1001 : Record 37;
+      SalesHeader@1004 : Record 36;
+      LastDocumentNo@1002 : Code[20];
+      PrepmtInvReminderAmount@1003 : Decimal;
+    BEGIN
+      WITH SalesLine DO BEGIN
+        SETCURRENTKEY("Document Type","Document No.","Line No.");
+        IF FINDSET THEN
+          REPEAT
+            IF (SalesHeader."Document Type" <> "Document Type") OR (SalesHeader."No." <> "Document No.") THEN
+              SalesHeader.GET("Document Type","Document No.");
+            IF ("Line Amount" <> 0) AND (SalesHeader.Status = SalesHeader.Status::Open) THEN BEGIN
+              UpdateAmounts;
+              MODIFY;
+            END;
+            IF ("Document Type" = "Document Type"::Order) AND ("Prepayment Amount" <> "Prepmt. Amt. Incl. VAT") THEN BEGIN
+              IF "Document No." <> LastDocumentNo THEN BEGIN
+                LastDocumentNo := "Document No.";
+                PrepmtInvReminderAmount := 0;
+              END;
+              IF ("Prepmt. Amount Inv. (LCY)" <> 0) AND ("Prepmt. VAT Amount Inv. (LCY)" = 0) THEN BEGIN
+                "Prepmt. VAT Amount Inv. (LCY)" :=
+                  CalcRoundedAmount("Prepmt. Amount Inv. (LCY)","Prepayment VAT %" / 100,PrepmtInvReminderAmount);
+                MODIFY;
+              END;
+            END;
+          UNTIL NEXT = 0;
+      END;
+    END;
+
+    LOCAL PROCEDURE UpdatePurchLinesTable@630();
+    BEGIN
+      UpdatePurchaseLine;
+      UpdatePurchLines;
+    END;
+
+    LOCAL PROCEDURE UpdatePurchLines@63();
+    VAR
+      PurchaseLine@1001 : Record 39;
+      LastDocumentNo@1002 : Code[20];
+      PrepmtInvReminderAmount@1003 : Decimal;
+    BEGIN
+      WITH PurchaseLine DO
+        IF FINDSET THEN
+          REPEAT
+            IF ("Document Type" = "Document Type"::Order) AND ("Prepayment Amount" <> "Prepmt. Amt. Incl. VAT") THEN BEGIN
+              IF "Document No." <> LastDocumentNo THEN BEGIN
+                LastDocumentNo := "Document No.";
+                PrepmtInvReminderAmount := 0;
+              END;
+              IF ("Prepmt. Amount Inv. (LCY)" <> 0) AND ("Prepmt. VAT Amount Inv. (LCY)" = 0) THEN BEGIN
+                "Prepmt. VAT Amount Inv. (LCY)" :=
+                  CalcRoundedAmount("Prepmt. Amount Inv. (LCY)","Prepayment VAT %" / 100,PrepmtInvReminderAmount);
+                MODIFY;
+              END;
+            END;
+          UNTIL NEXT = 0;
+    END;
+
+    LOCAL PROCEDURE CalcRoundedAmount@64(LineAmount@1000 : Decimal;Ratio@1001 : Decimal;VAR Reminder@1002 : Decimal) RoundedAmount : Decimal;
+    VAR
+      Amount@1003 : Decimal;
+    BEGIN
+      Amount := Reminder + LineAmount * Ratio;
+      RoundedAmount := ROUND(Amount);
+      Reminder := Amount - RoundedAmount;
+    END;
+
+    LOCAL PROCEDURE UpdateOutlookSynchFilter@57();
+    VAR
+      OutlookSynchFilter@1001 : Record 5303;
+    BEGIN
+      WITH OutlookSynchFilter DO
+        IF FINDFIRST THEN
+          MODIFYALL(FilterExpression,'',TRUE);
+    END;
+
+    LOCAL PROCEDURE UpdateOutlookSynchField@58();
+    VAR
+      OutlookSynchField@1001 : Record 5304;
+      DefaultValue@1002 : Text[250];
+    BEGIN
+      WITH OutlookSynchField DO BEGIN
+        SETFILTER("Field Default Value",'<>''''');
+        IF FINDSET THEN BEGIN
+          REPEAT
+            // Clear and reset value to kick off validation and expression calculation
+            DefaultValue := "Field Default Value";
+            "Field Default Value" := '';
+            MODIFY;
+            VALIDATE("Field Default Value",DefaultValue);
+            MODIFY(TRUE);
+          UNTIL NEXT = 0;
+        END;
+      END;
+    END;
+
+    LOCAL PROCEDURE UpdateUserID@67();
+    VAR
+      TempWindowsLogin@1001 : Record 104087;
+      User@1002 : Record 2000000120;
+      UpgradeUserMgt@1010 : Codeunit 104056;
+    BEGIN
+      WITH TempWindowsLogin DO
+        IF FINDSET THEN BEGIN
+          LOCKTABLE;
+          REPEAT
+            User.SETRANGE("User Name","User Name");
+            IF NOT User.ISEMPTY THEN
+              UpgradeUserMgt.RenameUser("User ID","User Name");
+          UNTIL NEXT = 0;
+
+          DELETEALL;
+        END;
+    END;
+
+    LOCAL PROCEDURE UpdateUserIDFromDatabaseUser@68();
+    VAR
+      TempUser@1001 : Record 104088;
+      User@1002 : Record 2000000120;
+      TempMemberOf@1004 : Record 104089;
+      AccessControl@1005 : Record 2000000053;
+    BEGIN
+      WITH TempUser DO BEGIN
+        IF FINDSET THEN
+          REPEAT
+            User.SETRANGE("User Name","User ID");
+            IF NOT User.ISEMPTY THEN BEGIN
+              User.INIT;
+              User."User Security ID" := CREATEGUID;
+              User."User Name" := "User ID";
+              User."Full Name" := Name;
+              User."Expiry Date" := CREATEDATETIME("Expiration Date",0T);
+              User.INSERT;
+               TempMemberOf.SETRANGE("User ID","User ID");
+              IF TempMemberOf.FINDSET THEN REPEAT
+                AccessControl.INIT;
+                AccessControl."User Security ID" := User."User Security ID";
+                AccessControl."Role ID" := TempMemberOf."Role ID";
+                AccessControl."Company Name" := TempMemberOf.Company;
+                AccessControl.INSERT;
+              UNTIL NEXT = 0;
+            END;
+          UNTIL NEXT = 0;
+        DELETEALL;
+        TempMemberOf.RESET;
+        TempMemberOf.DELETEALL;
+      END;
+    END;
+
+    LOCAL PROCEDURE UpdatePostedSalesInvoices@71();
+    VAR
+      SalesInvHeader@1001 : Record 112;
+      SalesInvoicesCustEntry@1002 : Query 104001;
+    BEGIN
+      SalesInvoicesCustEntry.OPEN;
+      WITH SalesInvHeader DO
+        WHILE SalesInvoicesCustEntry.READ DO
+          IF SalesInvoicesCustEntry.Entry_No <> 0 THEN BEGIN
+            GET(SalesInvoicesCustEntry.No);
+            "Cust. Ledger Entry No." := SalesInvoicesCustEntry.Entry_No;
+            MODIFY;
+          END;
+
+      SalesInvoicesCustEntry.CLOSE;
+    END;
+
+    LOCAL PROCEDURE UpdatePostedSalesCreditMemos@72();
+    VAR
+      SalesCrMemoHeader@1001 : Record 114;
+      SalesCreditMemosCustEntry@1002 : Query 104002;
+    BEGIN
+      SalesCreditMemosCustEntry.OPEN;
+      WITH SalesCrMemoHeader DO
+        WHILE SalesCreditMemosCustEntry.READ DO
+          IF SalesCreditMemosCustEntry.Entry_No <> 0 THEN BEGIN
+            GET(SalesCreditMemosCustEntry.No);
+            "Cust. Ledger Entry No." := SalesCreditMemosCustEntry.Entry_No;
+            MODIFY;
+          END;
+
+      SalesCreditMemosCustEntry.CLOSE;
+    END;
+
+    LOCAL PROCEDURE UpdatePostedPurchCreditMemos@73();
+    VAR
+      PurchCrMemoHdr@1001 : Record 124;
+      PurchCreditMemosVendEntry@1002 : Query 104003;
+    BEGIN
+      PurchCreditMemosVendEntry.OPEN;
+      WITH PurchCrMemoHdr DO
+        WHILE PurchCreditMemosVendEntry.READ DO
+          IF PurchCreditMemosVendEntry.Entry_No <> 0 THEN BEGIN
+            GET(PurchCreditMemosVendEntry.No);
+            "Vendor Ledger Entry No." := PurchCreditMemosVendEntry.Entry_No;
+            MODIFY;
+          END;
+
+      PurchCreditMemosVendEntry.CLOSE;
+    END;
+
+    LOCAL PROCEDURE UpdatePostedPurchaseInvoices@74();
+    VAR
+      PurchInvHeader@1001 : Record 122;
+      PurchInvoicesVendEntry@1002 : Query 104004;
+    BEGIN
+      PurchInvoicesVendEntry.OPEN;
+      WITH PurchInvHeader DO
+        WHILE PurchInvoicesVendEntry.READ DO
+          IF PurchInvoicesVendEntry.Entry_No <> 0 THEN BEGIN
+            GET(PurchInvoicesVendEntry.No);
+            "Vendor Ledger Entry No." := PurchInvoicesVendEntry.Entry_No;
+            MODIFY;
+          END;
+
+      PurchInvoicesVendEntry.CLOSE;
+    END;
+
+    BEGIN
+    {
+      001 NAVUP-890 ASH 2019/03/11 Moved upgrade toolkit functions to sql queries.
+    }
+    END.
+  }
+}
+
+OBJECT Codeunit 104052 UPGDIM6080.W1
+{
+  OBJECT-PROPERTIES
+  {
+    Date=25/09/15;
+    Time=12:00:00 PM;
+    Version List=UPGTK8.00.00;
+  }
+  PROPERTIES
+  {
+    OnRun=BEGIN
+          END;
+
+  }
+  CODE
+  {
+
+    PROCEDURE UpdateDimensionTables@100();
+    VAR
+      UpgradeDimEntry@1010 : Codeunit 104049;
+    BEGIN
+      UpgradeDimEntry.UpgradeTable(DATABASE::"Ledger Entry Dimension",0);
+      UpgradeDimEntry.UpgradeTable(DATABASE::"Journal Line Dimension",0);
+      UpgradeDimEntry.UpgradeTable(DATABASE::"Document Dimension",0);
+      UpgradeDimEntry.UpgradeTable(DATABASE::"Production Document Dimension",0);
+      UpgradeDimEntry.UpgradeTable(DATABASE::"Posted Document Dimension",0);
+      UpgradeDimEntry.UpgradeTable(DATABASE::"G/L Budget Dimension",DATABASE::"G/L Budget Entry");
+      UpgradeDimEntry.UpgradeTable(DATABASE::"Service Contract Dimension",0);
+      UpgradeDimEntry.UpgradeTable(DATABASE::"FA Allocation Dimension",DATABASE::"FA Allocation");
+      UpgradeDimEntry.UpgradeTable(DATABASE::"Item Budget Dimension",DATABASE::"Item Budget Entry");
+      UpgradeDimEntry.UpgradeTable(DATABASE::"Document Dimension Archive",0);
+    END;
+
+    BEGIN
+    END.
+  }
+}
+
+OBJECT Codeunit 104053 Mark Upgrade Toolkit
+{
+  OBJECT-PROPERTIES
+  {
+    Date=25/09/15;
+    Time=12:00:00 PM;
+    Version List=UPGTK8.00.00;
+  }
+  PROPERTIES
+  {
+    OnRun=BEGIN
+          END;
+
+  }
+  CODE
+  {
+    VAR
+      Object@1000 : Record 2000000001;
+      MarkedForDeletionMsg@1004 : TextConst 'ENU=Upgrade Toolkit Object - marked for deletion.';
+      OldUnusedTableMsg@1005 : TextConst 'ENU=Old Unused Table - marked for deletion.';
+
+    PROCEDURE MarkTablesForDeletion@1010();
+    BEGIN
+      WITH Object DO BEGIN
+        SETFILTER(ID,'104000..104199|170000..189999');
+        SETFILTER(Type,'%1..%2',Type::Table,Type::Query);
+        IF FINDSET THEN
+          REPEAT
+            Modified := TRUE;
+            "Version List" := MarkedForDeletionMsg;
+            MODIFY;
+          UNTIL NEXT = 0;
+      END;
+
+      MarkTable(355);
+      MarkTable(356);
+      MarkTable(357);
+      MarkTable(358);
+      MarkTable(359);
+      MarkTable(361);
+      MarkTable(389);
+      MarkTable(5106);
+      MarkTable(5648);
+      MarkTable(7135);
+
+      DeleteRemovedPermissions;
+    END;
+
+    LOCAL PROCEDURE MarkTable@1020(ObjID@1000 : Integer);
+    VAR
+      ObjectTranslation@1003 : Record 377;
+      Object@1001 : Record 2000000001;
+      Permission@1002 : Record 2000000005;
+    BEGIN
+      WITH ObjectTranslation DO BEGIN
+        SETRANGE("Object Type","Object Type"::Table);
+        SETRANGE("Object ID",ObjID);
+        DELETEALL;
+      END;
+
+      WITH Permission DO BEGIN
+        SETFILTER("Object Type",'%1|%2',"Object Type"::Table,"Object Type"::"Table Data");
+        SETRANGE("Object ID",ObjID);
+        DELETEALL;
+      END;
+
+      WITH Object DO
+        IF GET(Type::Table,'',ObjID) THEN BEGIN
+          Modified := TRUE;
+          "Version List" := OldUnusedTableMsg;
+          MODIFY;
+        END;
+    END;
+
+    LOCAL PROCEDURE DeleteRemovedPermissions@59();
+    VAR
+      Permission@1001 : Record 2000000005;
+    BEGIN
+      WITH Permission DO BEGIN
+        SETFILTER("Role ID",'<>%1','SUPER');
+        SETRANGE("Object Type","Object Type"::Report,"Object Type"::Query);
+        IF FINDSET THEN
+          REPEAT
+            IF NOT PermissionObjectExists(Permission) THEN
+              DELETE;
+          UNTIL NEXT = 0;
+      END
+    END;
+
+    LOCAL PROCEDURE PermissionObjectExists@60(Permission@1000 : Record 2000000005) : Boolean;
+    VAR
+      AllObj@1001 : Record 2000000038;
+    BEGIN
+      WITH Permission DO BEGIN
+        IF "Object Type" = "Object Type"::"Table Data" THEN
+          IF AllObj.GET("Object Type"::Table,"Object ID") THEN
+            EXIT(TRUE);
+        IF AllObj.GET("Object Type","Object ID") THEN
+          EXIT(TRUE);
+        EXIT(FALSE)
+      END
+    END;
+
+    BEGIN
+    END.
+  }
+}
+
+OBJECT Codeunit 104055 UPG6080.StartUpgrade
+{
+  OBJECT-PROPERTIES
+  {
+    Date=25/09/15;
+    Time=12:00:00 PM;
+    Version List=UPGTK8.00.00;
+  }
+  PROPERTIES
+  {
+    Subtype=Upgrade;
+    OnRun=BEGIN
+          END;
+
+  }
+  CODE
+  {
+
+    [Upgrade]
+    PROCEDURE StartUpgrade@1();
+    VAR
+      UPG6080Main@1002 : Codeunit 104051;
+      UPGDIM6080@1001 : Codeunit 104052;
+      MarkUpgradeToolkit@1000 : Codeunit 104053;
+    BEGIN
+      UPG6080Main.UpgradeMethods;
+      COMMIT;
+      UPGDIM6080.UpdateDimensionTables;
+      // Mark upgrade toolkit objects for deletion once
+      IF IsLastCompanyInDatabase THEN
+        MarkUpgradeToolkit.MarkTablesForDeletion;
+    END;
+
+    LOCAL PROCEDURE IsLastCompanyInDatabase@2() : Boolean;
+    VAR
+      Company@1000 : Record 2000000006;
+    BEGIN
+      Company.FINDLAST;
+      EXIT(Company.Name = COMPANYNAME);
+    END;
+
+    BEGIN
+    END.
+  }
+}
+
+OBJECT Codeunit 104056 Upgrade User Mgt.
+{
+  OBJECT-PROPERTIES
+  {
+    Date=25/09/15;
+    Time=12:00:00 PM;
+    Version List=UPGTK8.00.00;
+  }
+  PROPERTIES
+  {
+    OnRun=BEGIN
+          END;
+
+  }
+  CODE
+  {
+    VAR
+      Text003Err@1111 : TextConst 'ENU=You do not have permissions for this action.';
+
+    PROCEDURE RenameUser@1000(OldUserName@1000 : Code[50];NewUserName@1001 : Code[50]);
+    VAR
+      User@1008 : Record 2000000120;
+      Field@1007 : Record 2000000041;
+      TableInformation@1006 : Record 2000000028;
+      RecRef@1005 : RecordRef;
+      FieldRef@1004 : FieldRef;
+      FieldRef2@1003 : FieldRef;
+      NumberOfPrimaryKeyFields@1002 : Integer;
+    BEGIN
+      Field.SETRANGE(RelationTableNo,DATABASE::User);
+      Field.SETRANGE(RelationFieldNo,User.FIELDNO("User Name"));
+      IF Field.FINDSET THEN
+        REPEAT
+          RecRef.OPEN(Field.TableNo);
+          IF RecRef.READPERMISSION THEN BEGIN
+            FieldRef := RecRef.FIELD(Field."No.");
+            FieldRef.SETRANGE(OldUserName);
+            IF RecRef.FINDSET(TRUE) THEN
+              REPEAT
+                IF IsPrimaryKeyField(Field.TableNo,Field."No.",NumberOfPrimaryKeyFields) THEN
+                  RenameRecord(RecRef,Field.TableNo,NumberOfPrimaryKeyFields,NewUserName)
+                ELSE BEGIN
+                  FieldRef2 := RecRef.FIELD(Field."No.");
+                  FieldRef2.VALUE := NewUserName;
+                  RecRef.MODIFY;
+                END;
+              UNTIL RecRef.NEXT = 0;
+          END ELSE BEGIN
+            TableInformation.GET(COMPANYNAME,Field.TableNo);
+            IF TableInformation."No. of Records" > 0 THEN
+              ERROR(Text003Err);
+          END;
+          RecRef.CLOSE;
+        UNTIL Field.NEXT = 0;
+    END;
+
+    LOCAL PROCEDURE IsPrimaryKeyField@1001(TableID@1005 : Integer;FieldID@1006 : Integer;VAR NumberOfPrimaryKeyFields@1004 : Integer) : Boolean;
+    VAR
+      ConfigValidateMgt@1000 : Codeunit 8617;
+      RecRef@1003 : RecordRef;
+      KeyRef@1002 : KeyRef;
+    BEGIN
+      RecRef.OPEN(TableID);
+      KeyRef := RecRef.KEYINDEX(1);
+      NumberOfPrimaryKeyFields := KeyRef.FIELDCOUNT;
+      EXIT(ConfigValidateMgt.IsKeyField(TableID,FieldID));
+    END;
+
+    LOCAL PROCEDURE RenameRecord@1002(VAR RecRef@1000 : RecordRef;TableNo@1004 : Integer;NumberOfPrimaryKeyFields@1001 : Integer;UserName@1003 : Code[50]);
+    VAR
+      UserTimeRegister@1005 : Record 51;
+      PrinterSelection@1006 : Record 78;
+      SelectedDimension@1007 : Record 369;
+      OutlookSynchUserSetup@1008 : Record 5305;
+      FAJournalSetup@1009 : Record 5605;
+      AnalysisSelectedDimension@1010 : Record 7159;
+      WarehouseEmployee@1002 : Record 7301;
+      MyCustomer@1011 : Record 9150;
+      MyVendor@1012 : Record 9151;
+      MyItem@1013 : Record 9152;
+      CueSetup@1015 : Record 9701;
+    BEGIN
+      IF NumberOfPrimaryKeyFields = 1 THEN
+        RecRef.RENAME(UserName)
+      ELSE
+        CASE TableNo OF
+          DATABASE::"User Time Register":
+            BEGIN
+              RecRef.SETTABLE(UserTimeRegister);
+              UserTimeRegister.RENAME(UserName,UserTimeRegister.Date);
+            END;
+          DATABASE::"Printer Selection":
+            BEGIN
+              RecRef.SETTABLE(PrinterSelection);
+              PrinterSelection.RENAME(UserName,PrinterSelection."Report ID");
+            END;
+          DATABASE::"Selected Dimension":
+            BEGIN
+              RecRef.SETTABLE(SelectedDimension);
+              SelectedDimension.RENAME(UserName,SelectedDimension."Object Type",SelectedDimension."Object ID",
+                SelectedDimension."Analysis View Code",SelectedDimension."Dimension Code");
+            END;
+          DATABASE::"Outlook Synch. User Setup":
+            BEGIN
+              RecRef.SETTABLE(OutlookSynchUserSetup);
+              OutlookSynchUserSetup.RENAME(UserName,OutlookSynchUserSetup."Synch. Entity Code");
+            END;
+          DATABASE::"FA Journal Setup":
+            BEGIN
+              RecRef.SETTABLE(FAJournalSetup);
+              FAJournalSetup.RENAME(FAJournalSetup."Depreciation Book Code",UserName);
+            END;
+          DATABASE::"Analysis Selected Dimension":
+            BEGIN
+              RecRef.SETTABLE(AnalysisSelectedDimension);
+              AnalysisSelectedDimension.RENAME(UserName,AnalysisSelectedDimension."Object Type",AnalysisSelectedDimension."Object ID",
+                AnalysisSelectedDimension."Analysis Area",AnalysisSelectedDimension."Analysis View Code",
+                AnalysisSelectedDimension."Dimension Code");
+            END;
+          DATABASE::"Cue Setup":
+            BEGIN
+              RecRef.SETTABLE(CueSetup);
+              CueSetup.RENAME(UserName,CueSetup."Table ID",CueSetup."Field No.");
+            END;
+          DATABASE::"Warehouse Employee":
+            BEGIN
+              RecRef.SETTABLE(WarehouseEmployee);
+              WarehouseEmployee.RENAME(UserName,WarehouseEmployee."Location Code");
+            END;
+          DATABASE::"My Customer":
+            BEGIN
+              RecRef.SETTABLE(MyCustomer);
+              MyCustomer.RENAME(UserName,MyCustomer."Customer No.");
+            END;
+          DATABASE::"My Vendor":
+            BEGIN
+              RecRef.SETTABLE(MyVendor);
+              MyVendor.RENAME(UserName,MyVendor."Vendor No.");
+            END;
+          DATABASE::"My Item":
+            BEGIN
+              RecRef.SETTABLE(MyItem);
+              MyItem.RENAME(UserName,MyItem."Item No.");
+            END;
+
+        END;
+    END;
+
+    BEGIN
+    END.
+  }
+}
+
+OBJECT Query 104001 Sales Invoices - Cust. Entry
+{
+  OBJECT-PROPERTIES
+  {
+    Date=25/09/15;
+    Time=12:00:00 PM;
+    Version List=UPGTK8.00.00;
+  }
+  PROPERTIES
+  {
+  }
+  ELEMENTS
+  {
+    { 1   ;    ;DataItem;                    ;
+               DataItemTable=Table112 }
+
+    { 2   ;1   ;Column  ;                    ;
+               DataSource=No. }
+
+    { 3   ;1   ;DataItem;                    ;
+               DataItemTable=Table21;
+               DataItemTableFilter=Document Type=FILTER(Invoice);
+               DataItemLink=Document No.=Sales_Invoice_Header."No." }
+
+    { 4   ;2   ;Column  ;                    ;
+               DataSource=Entry No. }
+
+  }
+  CODE
+  {
+
+    BEGIN
+    END.
+  }
+}
+
+OBJECT Query 104002 Sales Cr. Memo - Cust. Entry
+{
+  OBJECT-PROPERTIES
+  {
+    Date=25/09/15;
+    Time=12:00:00 PM;
+    Version List=UPGTK8.00.00;
+  }
+  PROPERTIES
+  {
+  }
+  ELEMENTS
+  {
+    { 1   ;    ;DataItem;                    ;
+               DataItemTable=Table114 }
+
+    { 2   ;1   ;Column  ;                    ;
+               DataSource=No. }
+
+    { 3   ;1   ;DataItem;                    ;
+               DataItemTable=Table21;
+               DataItemTableFilter=Document Type=FILTER(Credit Memo);
+               DataItemLink=Document No.=Sales_Cr_Memo_Header."No." }
+
+    { 4   ;2   ;Column  ;                    ;
+               DataSource=Entry No. }
+
+  }
+  CODE
+  {
+
+    BEGIN
+    END.
+  }
+}
+
+OBJECT Query 104003 Purch. Cr. Memo - Vend. Entry
+{
+  OBJECT-PROPERTIES
+  {
+    Date=25/09/15;
+    Time=12:00:00 PM;
+    Version List=UPGTK8.00.00;
+  }
+  PROPERTIES
+  {
+  }
+  ELEMENTS
+  {
+    { 1   ;    ;DataItem;                    ;
+               DataItemTable=Table124 }
+
+    { 2   ;1   ;Column  ;                    ;
+               DataSource=No. }
+
+    { 3   ;1   ;DataItem;                    ;
+               DataItemTable=Table25;
+               DataItemTableFilter=Document Type=FILTER(Credit Memo);
+               DataItemLink=Document No.=Purch_Cr_Memo_Hdr."No." }
+
+    { 4   ;2   ;Column  ;                    ;
+               DataSource=Entry No. }
+
+  }
+  CODE
+  {
+
+    BEGIN
+    END.
+  }
+}
+
+OBJECT Query 104004 Purch. Invoices - Vend. Entry
+{
+  OBJECT-PROPERTIES
+  {
+    Date=25/09/15;
+    Time=12:00:00 PM;
+    Version List=UPGTK8.00.00;
+  }
+  PROPERTIES
+  {
+  }
+  ELEMENTS
+  {
+    { 1   ;    ;DataItem;                    ;
+               DataItemTable=Table122 }
+
+    { 2   ;1   ;Column  ;                    ;
+               DataSource=No. }
+
+    { 3   ;1   ;DataItem;                    ;
+               DataItemTable=Table25;
+               DataItemTableFilter=Document Type=FILTER(Invoice);
+               DataItemLink=Document No.=Purch_Inv_Header."No." }
+
+    { 4   ;2   ;Column  ;                    ;
+               DataSource=Entry No. }
+
+  }
+  CODE
+  {
+
+    BEGIN
+    END.
+  }
+}
+

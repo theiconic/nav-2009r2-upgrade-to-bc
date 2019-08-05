@@ -1,0 +1,3849 @@
+OBJECT Table 104050 UPG Credit Trans Reexport Hist
+{
+  OBJECT-PROPERTIES
+  {
+    Date=19/09/18;
+    Time=12:00:00 PM;
+    Version List=UPGTK13.00.00;
+  }
+  PROPERTIES
+  {
+  }
+  FIELDS
+  {
+    { 1   ;   ;No.                 ;Integer       ;AutoIncrement=Yes }
+    { 2   ;   ;Credit Transfer Register No.;Integer;
+                                                   TableRelation="Credit Transfer Register" }
+    { 3   ;   ;Re-export Date      ;Date           }
+    { 4   ;   ;Re-exported By      ;Code50         }
+  }
+  KEYS
+  {
+    {    ;No.                                     ;Clustered=Yes }
+  }
+  FIELDGROUPS
+  {
+  }
+  CODE
+  {
+
+    BEGIN
+    END.
+  }
+}
+
+OBJECT Table 104052 UPG Custom Report Layout
+{
+  OBJECT-PROPERTIES
+  {
+    Date=19/09/18;
+    Time=12:00:00 PM;
+    Version List=UPGTK13.00.00;
+  }
+  PROPERTIES
+  {
+    DataPerCompany=No;
+  }
+  FIELDS
+  {
+    { 1   ;   ;ID                  ;Integer       ;AutoIncrement=Yes }
+    { 2   ;   ;Report ID           ;Integer        }
+    { 4   ;   ;Company Name        ;Text30        ;TableRelation=Company }
+    { 6   ;   ;Type                ;Option        ;InitValue=Word;
+                                                   OptionString=RDLC,Word }
+    { 7   ;   ;Layout              ;BLOB           }
+    { 8   ;   ;Last Modified       ;DateTime      ;Editable=No }
+    { 9   ;   ;Last Modified by User;Code50       ;Editable=No }
+    { 10  ;   ;File Extension      ;Text30        ;Editable=No }
+    { 11  ;   ;Description         ;Text80         }
+    { 12  ;   ;Custom XML Part     ;BLOB           }
+  }
+  KEYS
+  {
+    {    ;ID                                      ;Clustered=Yes }
+  }
+  FIELDGROUPS
+  {
+  }
+  CODE
+  {
+
+    BEGIN
+    END.
+  }
+}
+
+OBJECT Table 104054 UPG Approval Setup
+{
+  OBJECT-PROPERTIES
+  {
+    Date=19/09/18;
+    Time=12:00:00 PM;
+    Version List=UPGTK13.00.00;
+  }
+  PROPERTIES
+  {
+  }
+  FIELDS
+  {
+    { 1   ;   ;Primary Key         ;Code20         }
+    { 2   ;   ;Due Date Formula    ;DateFormula    }
+    { 3   ;   ;Approval Administrator;Code50      ;TableRelation="User Setup" }
+    { 5   ;   ;Request Rejection Comment;Boolean   }
+    { 6   ;   ;Approvals           ;Boolean        }
+    { 7   ;   ;Cancellations       ;Boolean        }
+    { 8   ;   ;Rejections          ;Boolean        }
+    { 9   ;   ;Delegations         ;Boolean        }
+    { 10  ;   ;Last Run Time       ;Time           }
+    { 11  ;   ;Last Run Date       ;Date           }
+    { 12  ;   ;Overdue Template    ;BLOB          ;SubType=User-Defined }
+    { 13  ;   ;Approval Template   ;BLOB          ;SubType=User-Defined }
+  }
+  KEYS
+  {
+    {    ;Primary Key                             ;Clustered=Yes }
+  }
+  FIELDGROUPS
+  {
+  }
+  CODE
+  {
+
+    BEGIN
+    END.
+  }
+}
+
+OBJECT Table 104055 UPG Approval Templates
+{
+  OBJECT-PROPERTIES
+  {
+    Date=19/09/18;
+    Time=12:00:00 PM;
+    Version List=UPGTK13.00.00;
+  }
+  PROPERTIES
+  {
+  }
+  FIELDS
+  {
+    { 1   ;   ;Table ID            ;Integer       ;Editable=No }
+    { 2   ;   ;Approval Code       ;Code20         }
+    { 3   ;   ;Approval Type       ;Option        ;OptionString=[ ,Sales Pers./Purchaser,Approver] }
+    { 4   ;   ;Document Type       ;Option        ;OptionString=Quote,Order,Invoice,Credit Memo,Blanket Order,Return Order,None }
+    { 5   ;   ;Limit Type          ;Option        ;OptionString=Approval Limits,Credit Limits,Request Limits,No Limits }
+    { 6   ;   ;Additional Approvers;Boolean       ;FieldClass=FlowField;
+                                                   Editable=No }
+    { 7   ;   ;Enabled             ;Boolean        }
+  }
+  KEYS
+  {
+    {    ;Approval Code,Approval Type,Document Type,Limit Type;
+                                                   Clustered=Yes }
+    {    ;Table ID,Approval Type,Enabled           }
+    {    ;Approval Code,Approval Type,Enabled      }
+    {    ;Enabled                                  }
+    {    ;Limit Type,Document Type,Approval Type,Enabled }
+    {    ;Table ID,Document Type,Enabled           }
+  }
+  FIELDGROUPS
+  {
+  }
+  CODE
+  {
+
+    BEGIN
+    END.
+  }
+}
+
+OBJECT Table 104056 UPG Additional Approvers
+{
+  OBJECT-PROPERTIES
+  {
+    Date=19/09/18;
+    Time=12:00:00 PM;
+    Version List=UPGTK13.00.00;
+  }
+  PROPERTIES
+  {
+  }
+  FIELDS
+  {
+    { 1   ;   ;Approval Code       ;Code20         }
+    { 2   ;   ;Approver ID         ;Code50        ;TableRelation="User Setup"."User ID" }
+    { 3   ;   ;Approval Type       ;Option        ;OptionString=[ ,Sales Pers./Purchaser,Approver] }
+    { 4   ;   ;Document Type       ;Option        ;OptionString=Quote,Order,Invoice,Credit Memo,Blanket Order,Return Order,None }
+    { 5   ;   ;Limit Type          ;Option        ;OptionString=Approval Limits,Credit Limits,Request Limits,No Limits;
+                                                   Editable=No }
+    { 6   ;   ;Sequence No.        ;Integer       ;Editable=No }
+  }
+  KEYS
+  {
+    {    ;Approver ID,Approval Code,Approval Type,Document Type,Limit Type,Sequence No.;
+                                                   Clustered=Yes }
+    {    ;Sequence No.                             }
+  }
+  FIELDGROUPS
+  {
+  }
+  CODE
+  {
+
+    BEGIN
+    END.
+  }
+}
+
+OBJECT Table 104065 UPG Direct Debit Col. Entry
+{
+  OBJECT-PROPERTIES
+  {
+    Date=19/09/18;
+    Time=12:00:00 PM;
+    Version List=UPGTK13.00.00;
+  }
+  PROPERTIES
+  {
+  }
+  FIELDS
+  {
+    { 1   ;   ;Direct Debit Collection No.;Integer;TableRelation="Direct Debit Collection" }
+    { 2   ;   ;Entry No.           ;Integer        }
+    { 11  ;   ;Mandate ID          ;Text35         }
+  }
+  KEYS
+  {
+    {    ;Direct Debit Collection No.,Entry No.   ;Clustered=Yes }
+  }
+  FIELDGROUPS
+  {
+  }
+  CODE
+  {
+
+    BEGIN
+    END.
+  }
+}
+
+OBJECT Table 104067 UPG Item
+{
+  OBJECT-PROPERTIES
+  {
+    Date=19/09/18;
+    Time=12:00:00 PM;
+    Version List=UPGTK13.00.00;
+  }
+  PROPERTIES
+  {
+    Permissions=;
+  }
+  FIELDS
+  {
+    { 1   ;   ;No.                 ;Code20         }
+    { 92  ;   ;Picture             ;BLOB          ;SubType=Bitmap }
+    { 5702;   ;Item Category Code  ;Code10         }
+    { 5704;   ;Product Group Code  ;Code10         }
+    { 7382;   ;Next Counting Period;Text250       ;Editable=No }
+  }
+  KEYS
+  {
+    {    ;No.                                     ;Clustered=Yes }
+  }
+  FIELDGROUPS
+  {
+  }
+  CODE
+  {
+
+    BEGIN
+    END.
+  }
+}
+
+OBJECT Table 104073 UPG Nonstock Item
+{
+  OBJECT-PROPERTIES
+  {
+    Date=19/09/18;
+    Time=12:00:00 PM;
+    Version List=UPGTK13.00.00;
+  }
+  PROPERTIES
+  {
+    LookupPageID=Page5726;
+    DrillDownPageID=Page5726;
+  }
+  FIELDS
+  {
+    { 1   ;   ;Entry No.           ;Code20        ;Editable=Yes }
+    { 12  ;   ;Item Category Code  ;Code10         }
+    { 13  ;   ;Product Group Code  ;Code10         }
+  }
+  KEYS
+  {
+    {    ;Entry No.                               ;Clustered=Yes }
+  }
+  FIELDGROUPS
+  {
+  }
+  CODE
+  {
+
+    BEGIN
+    END.
+  }
+}
+
+OBJECT Table 104074 UPG Product Group
+{
+  OBJECT-PROPERTIES
+  {
+    Date=19/09/18;
+    Time=12:00:00 PM;
+    Version List=UPGTK13.00.00;
+  }
+  PROPERTIES
+  {
+  }
+  FIELDS
+  {
+    { 1   ;   ;Item Category Code  ;Code10         }
+    { 2   ;   ;Code                ;Code10         }
+    { 3   ;   ;Description         ;Text50         }
+    { 7300;   ;Warehouse Class Code;Code10         }
+  }
+  KEYS
+  {
+    {    ;Item Category Code,Code                 ;Clustered=Yes }
+  }
+  FIELDGROUPS
+  {
+  }
+  CODE
+  {
+
+    BEGIN
+    END.
+  }
+}
+
+OBJECT Table 104075 UPG Workflow User Group Member
+{
+  OBJECT-PROPERTIES
+  {
+    Date=19/09/18;
+    Time=12:00:00 PM;
+    Version List=UPGTK13.00.00;
+  }
+  PROPERTIES
+  {
+  }
+  FIELDS
+  {
+    { 1   ;   ;Workflow User Group Code;Code20    ;TableRelation="Workflow User Group".Code }
+    { 2   ;   ;User Name           ;Code50        ;TableRelation="User Setup"."User ID";
+                                                   OnValidate=VAR
+                                                                UserSetup@1000 : Record 91;
+                                                                WorkflowUserGroupMember@1001 : Record 1541;
+                                                                SequenceNo@1002 : Integer;
+                                                              BEGIN
+                                                                UserSetup.GET("User Name");
+
+                                                                IF "Sequence No." = 0 THEN BEGIN
+                                                                  SequenceNo := 1;
+                                                                  WorkflowUserGroupMember.SETCURRENTKEY("Workflow User Group Code","Sequence No.");
+                                                                  WorkflowUserGroupMember.SETRANGE("Workflow User Group Code","Workflow User Group Code");
+                                                                  IF WorkflowUserGroupMember.FINDLAST THEN
+                                                                    SequenceNo := WorkflowUserGroupMember."Sequence No." + 1;
+                                                                  VALIDATE("Sequence No.",SequenceNo);
+                                                                END;
+                                                              END;
+                                                               }
+    { 3   ;   ;Sequence No.        ;Integer       ;MinValue=1 }
+  }
+  KEYS
+  {
+    {    ;Workflow User Group Code,Sequence No.   ;Clustered=Yes }
+    {    ;Workflow User Group Code,User Name       }
+  }
+  FIELDGROUPS
+  {
+  }
+  CODE
+  {
+
+    BEGIN
+    END.
+  }
+}
+
+OBJECT Table 104077 UPG Approval Entry
+{
+  OBJECT-PROPERTIES
+  {
+    Date=19/09/18;
+    Time=12:00:00 PM;
+    Version List=UPGTK13.00.00;
+  }
+  PROPERTIES
+  {
+  }
+  FIELDS
+  {
+    { 1   ;   ;Table ID            ;Integer        }
+    { 2   ;   ;Document Type       ;Option        ;OptionString=Quote,Order,Invoice,Credit Memo,Blanket Order,Return Order }
+    { 3   ;   ;Document No.        ;Code20         }
+    { 4   ;   ;Sequence No.        ;Integer        }
+    { 5   ;   ;Approval Code       ;Code20         }
+    { 6   ;   ;Sender ID           ;Code50         }
+    { 7   ;   ;Salespers./Purch. Code;Code10       }
+    { 8   ;   ;Approver ID         ;Code50         }
+    { 9   ;   ;Status              ;Option        ;OptionString=Created,Open,Canceled,Rejected,Approved }
+    { 10  ;   ;Date-Time Sent for Approval;DateTime }
+    { 11  ;   ;Last Date-Time Modified;DateTime    }
+    { 12  ;   ;Last Modified By ID ;Code50         }
+    { 13  ;   ;Comment             ;Boolean       ;FieldClass=FlowField;
+                                                   CalcFormula=Exist("Approval Comment Line" WHERE (Table ID=FIELD(Table ID),
+                                                                                                    Document Type=FIELD(Document Type),
+                                                                                                    Document No.=FIELD(Document No.)));
+                                                   Editable=No }
+    { 14  ;   ;Due Date            ;Date           }
+    { 15  ;   ;Amount              ;Decimal       ;AutoFormatType=1;
+                                                   AutoFormatExpr="Currency Code" }
+    { 16  ;   ;Amount (LCY)        ;Decimal       ;AutoFormatType=1 }
+    { 17  ;   ;Currency Code       ;Code10        ;TableRelation=Currency }
+    { 18  ;   ;Approval Type       ;Option        ;OptionString=[ ,Sales Pers./Purchaser,Approver] }
+    { 19  ;   ;Limit Type          ;Option        ;OptionString=Approval Limits,Credit Limits,Request Limits,No Limits }
+    { 20  ;   ;Available Credit Limit (LCY);Decimal }
+  }
+  KEYS
+  {
+    {    ;Table ID,Document Type,Document No.,Sequence No.;
+                                                   Clustered=Yes }
+    {    ;Approver ID,Status                       }
+    {    ;Sender ID                                }
+  }
+  FIELDGROUPS
+  {
+  }
+  CODE
+  {
+
+    BEGIN
+    END.
+  }
+}
+
+OBJECT Table 104079 UPG Company Information
+{
+  OBJECT-PROPERTIES
+  {
+    Date=19/09/18;
+    Time=12:00:00 PM;
+    Version List=UPGTK13.00.00;
+  }
+  PROPERTIES
+  {
+  }
+  FIELDS
+  {
+    { 1   ;   ;Primary Key         ;Code10         }
+    { 101 ;   ;Intrastat Contact Type;Option      ;OptionString=[ ,Contact,Vendor] }
+    { 102 ;   ;Intrastat Contact No.;Code20        }
+  }
+  KEYS
+  {
+    {    ;Primary Key                             ;Clustered=Yes }
+  }
+  FIELDGROUPS
+  {
+  }
+  CODE
+  {
+
+    BEGIN
+    END.
+  }
+}
+
+OBJECT Table 104080 UPG Posted Approval Entry
+{
+  OBJECT-PROPERTIES
+  {
+    Date=19/09/18;
+    Time=12:00:00 PM;
+    Version List=UPGTK13.00.00;
+  }
+  PROPERTIES
+  {
+  }
+  FIELDS
+  {
+    { 1   ;   ;Table ID            ;Integer        }
+    { 3   ;   ;Document No.        ;Code20         }
+    { 4   ;   ;Sequence No.        ;Integer        }
+    { 5   ;   ;Approval Code       ;Code20         }
+    { 6   ;   ;Sender ID           ;Code50        ;TableRelation=User."User Name";
+                                                   TestTableRelation=No }
+    { 7   ;   ;Salespers./Purch. Code;Code10       }
+    { 8   ;   ;Approver ID         ;Code50        ;TableRelation=User."User Name";
+                                                   TestTableRelation=No }
+    { 9   ;   ;Status              ;Option        ;OptionString=Created,Open,Canceled,Rejected,Approved }
+    { 10  ;   ;Date-Time Sent for Approval;DateTime }
+    { 11  ;   ;Last Date-Time Modified;DateTime    }
+    { 12  ;   ;Last Modified By ID ;Code50        ;TableRelation=User."User Name";
+                                                   TestTableRelation=No }
+    { 13  ;   ;Comment             ;Boolean       ;FieldClass=FlowField;
+                                                   CalcFormula=Exist("Posted Approval Comment Line" WHERE (Table ID=FIELD(Table ID),
+                                                                                                           Document No.=FIELD(Document No.)));
+                                                   Editable=No }
+    { 14  ;   ;Due Date            ;Date           }
+    { 15  ;   ;Amount              ;Decimal       ;AutoFormatType=1;
+                                                   AutoFormatExpr="Currency Code" }
+    { 16  ;   ;Amount (LCY)        ;Decimal       ;AutoFormatType=1 }
+    { 17  ;   ;Currency Code       ;Code10        ;TableRelation=Currency }
+    { 18  ;   ;Approval Type       ;Option        ;OptionString=[ ,Sales Pers./Purchaser,Approver] }
+    { 19  ;   ;Limit Type          ;Option        ;OptionString=Approval Limits,Credit Limits,Request Limits,No Limits }
+    { 20  ;   ;Available Credit Limit (LCY);Decimal }
+  }
+  KEYS
+  {
+    {    ;Table ID,Document No.,Sequence No.      ;Clustered=Yes }
+  }
+  FIELDGROUPS
+  {
+  }
+  CODE
+  {
+
+    BEGIN
+    END.
+  }
+}
+
+OBJECT Table 104082 UPG SMTP Mail Setup
+{
+  OBJECT-PROPERTIES
+  {
+    Date=19/09/18;
+    Time=12:00:00 PM;
+    Version List=UPGTK13.00.00;
+  }
+  PROPERTIES
+  {
+  }
+  FIELDS
+  {
+    { 1   ;   ;Primary Key         ;Code10         }
+    { 5   ;   ;Password            ;Text250        }
+  }
+  KEYS
+  {
+    {    ;Primary Key                             ;Clustered=Yes }
+  }
+  FIELDGROUPS
+  {
+  }
+  CODE
+  {
+
+    BEGIN
+    END.
+  }
+}
+
+OBJECT Table 104089 UPG Report Layout Selection
+{
+  OBJECT-PROPERTIES
+  {
+    Date=19/09/18;
+    Time=12:00:00 PM;
+    Version List=UPGTK13.00.00;
+  }
+  PROPERTIES
+  {
+    DataPerCompany=No;
+  }
+  FIELDS
+  {
+    { 1   ;   ;Report ID           ;Integer        }
+    { 2   ;   ;Report Name         ;Text80        ;Editable=No }
+    { 3   ;   ;Company Name        ;Text30        ;TableRelation=Company }
+    { 6   ;   ;Custom Report Layout ID;Integer     }
+  }
+  KEYS
+  {
+    {    ;Report ID,Company Name                  ;Clustered=Yes }
+  }
+  FIELDGROUPS
+  {
+  }
+  CODE
+  {
+
+    BEGIN
+    END.
+  }
+}
+
+OBJECT Table 104093 UPG Job
+{
+  OBJECT-PROPERTIES
+  {
+    Date=19/09/18;
+    Time=12:00:00 PM;
+    Version List=UPGTK13.00.00;
+  }
+  PROPERTIES
+  {
+    Permissions=;
+  }
+  FIELDS
+  {
+    { 1   ;   ;No.                 ;Code20         }
+    { 1035;   ;Over Budget         ;Boolean        }
+  }
+  KEYS
+  {
+    {    ;No.                                     ;Clustered=Yes }
+  }
+  FIELDGROUPS
+  {
+  }
+  CODE
+  {
+
+    BEGIN
+    END.
+  }
+}
+
+OBJECT Table 104094 UPG Sales Invoice Header
+{
+  OBJECT-PROPERTIES
+  {
+    Date=19/09/18;
+    Time=12:00:00 PM;
+    Version List=UPGTK13.00.00;
+  }
+  PROPERTIES
+  {
+  }
+  FIELDS
+  {
+    { 3   ;   ;No.                 ;Code20         }
+    { 827 ;   ;Credit Card No.     ;Code20         }
+    { 1300;   ;Canceled By         ;Code20         }
+  }
+  KEYS
+  {
+    {    ;No.                                     ;Clustered=Yes }
+  }
+  FIELDGROUPS
+  {
+  }
+  CODE
+  {
+
+    BEGIN
+    END.
+  }
+}
+
+OBJECT Table 104095 UPG Sales Cr.Memo Header
+{
+  OBJECT-PROPERTIES
+  {
+    Date=19/09/18;
+    Time=12:00:00 PM;
+    Version List=UPGTK13.00.00;
+  }
+  PROPERTIES
+  {
+  }
+  FIELDS
+  {
+    { 3   ;   ;No.                 ;Code20         }
+    { 827 ;   ;Credit Card No.     ;Code20         }
+    { 1300;   ;Canceled            ;Boolean        }
+  }
+  KEYS
+  {
+    {    ;No.                                     ;Clustered=Yes }
+  }
+  FIELDGROUPS
+  {
+  }
+  CODE
+  {
+
+    BEGIN
+    END.
+  }
+}
+
+OBJECT Table 104096 UPG Purch. Inv. Header
+{
+  OBJECT-PROPERTIES
+  {
+    Date=19/09/18;
+    Time=12:00:00 PM;
+    Version List=UPGTK13.00.00;
+  }
+  PROPERTIES
+  {
+  }
+  FIELDS
+  {
+    { 3   ;   ;No.                 ;Code20         }
+    { 1300;   ;Canceled By         ;Code20         }
+  }
+  KEYS
+  {
+    {    ;No.                                     ;Clustered=Yes }
+  }
+  FIELDGROUPS
+  {
+  }
+  CODE
+  {
+
+    BEGIN
+    END.
+  }
+}
+
+OBJECT Table 104097 UPG Purch. Cr. Memo Hdr.
+{
+  OBJECT-PROPERTIES
+  {
+    Date=19/09/18;
+    Time=12:00:00 PM;
+    Version List=UPGTK13.00.00;
+  }
+  PROPERTIES
+  {
+  }
+  FIELDS
+  {
+    { 3   ;   ;No.                 ;Code20         }
+    { 1300;   ;Canceled            ;Boolean       ;FieldClass=Normal }
+  }
+  KEYS
+  {
+    {    ;No.                                     ;Clustered=Yes }
+  }
+  FIELDGROUPS
+  {
+  }
+  CODE
+  {
+
+    BEGIN
+    END.
+  }
+}
+
+OBJECT Table 104098 UPG Item Category
+{
+  OBJECT-PROPERTIES
+  {
+    Date=19/09/18;
+    Time=12:00:00 PM;
+    Version List=UPGTK13.00.00;
+  }
+  PROPERTIES
+  {
+    LookupPageID=Page5730;
+  }
+  FIELDS
+  {
+    { 1   ;   ;Code                ;Code10        ;NotBlank=Yes }
+    { 3   ;   ;Description         ;Text50         }
+    { 4   ;   ;Def. Gen. Prod. Posting Group;Code10 }
+    { 5   ;   ;Def. Inventory Posting Group;Code10 }
+    { 6   ;   ;Def. Tax Group Code ;Code10         }
+    { 7   ;   ;Def. Costing Method ;Option        ;OptionString=FIFO,LIFO,Specific,Average,Standard }
+    { 8   ;   ;Def. VAT Prod. Posting Group;Code10 }
+  }
+  KEYS
+  {
+    {    ;Code                                    ;Clustered=Yes }
+  }
+  FIELDGROUPS
+  {
+  }
+  CODE
+  {
+
+    BEGIN
+    END.
+  }
+}
+
+OBJECT Codeunit 104000 UPG.APAC
+{
+  OBJECT-PROPERTIES
+  {
+    Date=19/09/18;
+    Time=12:00:00 PM;
+    Version List=UPGTK13.00.00;
+  }
+  PROPERTIES
+  {
+    Permissions=TableData 32=m;
+    Subtype=Upgrade;
+    OnRun=BEGIN
+          END;
+
+  }
+  CODE
+  {
+    VAR
+      DataUpgradeMgt@1001 : Codeunit 9900;
+      UnableToUpgradeProductGroupErr@1002 : TextConst '@@@=%1 - item category code, %2 - product group code;ENU=Unable to upgrade Product Group (%1,%2) because of Code duplication. Please make sure that this product group has a unique Code, and retry the upgrade.';
+      JobListTxt@1000 : TextConst '@@@={Locked};ENU=Job List';
+      JobTaskLinesTxt@1004 : TextConst '@@@={Locked};ENU=Job Task Lines';
+      JobPlanningLinesTxt@1005 : TextConst '@@@={Locked};ENU=Job Planning Lines';
+      PowerBICustomerListTxt@1014 : TextConst '@@@={Locked};ENU=Power BI Customer List';
+      PowerBIVendorListTxt@1013 : TextConst '@@@={Locked};ENU=Power BI Vendor List';
+      PowerBIJobsListTxt@1012 : TextConst '@@@={Locked};ENU=Power BI Jobs List';
+      PowerBISalesListTxt@1011 : TextConst '@@@={Locked};ENU=Power BI Sales List';
+      PowerBIPurchaseListTxt@1010 : TextConst '@@@={Locked};ENU=Power BI Purchase List';
+      PowerBIItemPurchasesListTxt@1009 : TextConst '@@@={Locked};ENU=Power BI Item Purchase List';
+      PowerBIItemSalesListTxt@1008 : TextConst '@@@={Locked};ENU=Power BI Item Sales List';
+      PowerBIGLAmountListTxt@1007 : TextConst '@@@={Locked};ENU=Power BI GL Amount List';
+      PowerBIGLBudgetedAmountListTxt@1006 : TextConst '@@@={Locked};ENU=Power BI GL BudgetedAmount';
+      PowerBITopCustOverviewTxt@1037 : TextConst '@@@={Locked};ENU=Power BI Top Cust. Overview';
+      PowerBISalesHdrCustTxt@1036 : TextConst '@@@={Locked};ENU=Power BI Sales Hdr. Cust.';
+      PowerBICustItemLedgEntTxt@1035 : TextConst '@@@={Locked};ENU=Power BI Cust. Item Ledg. Ent.';
+      PowerBICustLedgerEntriesTxt@1034 : TextConst '@@@={Locked};ENU=Power BI Cust. Ledger Entries';
+      PowerBIVendorLedgerEntriesTxt@1033 : TextConst '@@@={Locked};ENU=Power BI Vendor Ledger Entries';
+      PowerBIPurchaseHdrVendorTxt@1029 : TextConst '@@@={Locked};ENU=Power BI Purchase Hdr. Vendor';
+      PowerBIVendItemLedgEntTxt@1030 : TextConst '@@@={Locked};ENU=Power BI Vend. Item Ledg. Ent.';
+      PowerBIAgedAccPayableTxt@1032 : TextConst '@@@={Locked};ENU=Power BI Aged Acc. Payable';
+      PowerBIAgedAccReceivableTxt@1031 : TextConst '@@@={Locked};ENU=Power BI Aged Acc. Receivable';
+      PowerBIAgedInventoryChartTxt@1040 : TextConst '@@@={Locked};ENU=Power BI Aged Inventory Chart';
+      PowerBIJobActBudgPriceTxt@1039 : TextConst '@@@={Locked};ENU=Power BI Job Act. v. Budg. Price';
+      PowerBIJobProfitabilityTxt@1028 : TextConst '@@@={Locked};ENU=Power BI Job Profitability';
+      PowerBIJobActBudgCostTxt@1027 : TextConst '@@@={Locked};ENU=Power BI Job Act. v. Budg. Cost';
+      PowerBISalesPipelineTxt@1026 : TextConst '@@@={Locked};ENU=Power BI Sales Pipeline';
+      PowerBITop5OpportunitiesTxt@1024 : TextConst '@@@={Locked};ENU=Power BI Top 5 Opportunities';
+      PowerBIWorkDateCalcTxt@1020 : TextConst '@@@={Locked};ENU=Power BI WorkDate Calc.';
+      PowerBIReportLabelsTxt@1041 : TextConst '@@@={Locked};ENU=Power BI Report Labels';
+      UnableToUpgradeItemCategoryErr@1003 : TextConst '@@@=%1 - item category code;ENU=Unable to upgrade Item Category %1 because of Code duplication. Please make sure that this Item Category has a unique Code, and retry the upgrade.';
+      WebServiceManagement@1023 : Codeunit 9750;
+      ExcelTemplateIncomeStatementTxt@1018 : TextConst 'ENU=ExcelTemplateIncomeStatement';
+      ExcelTemplateBalanceSheetTxt@1017 : TextConst 'ENU=ExcelTemplateBalanceSheet';
+      ExcelTemplateTrialBalanceTxt@1016 : TextConst 'ENU=ExcelTemplateTrialBalance';
+      ExcelTemplateRetainedEarningsStatementTxt@1019 : TextConst 'ENU=ExcelTemplateRetainedEarnings';
+      ExcelTemplateCashFlowStatementTxt@1015 : TextConst 'ENU=ExcelTemplateCashFlowStatement';
+      ExcelTemplateAgedAccountsReceivableTxt@1021 : TextConst 'ENU=ExcelTemplateAgedAccountsReceivable';
+      ExcelTemplateAgedAccountsPayableTxt@1022 : TextConst 'ENU=ExcelTemplateAgedAccountsPayable';
+      ExcelTemplateCompanyInformationTxt@1025 : TextConst 'ENU=ExcelTemplateViewCompanyInformation';
+      ODataUtility@1038 : Codeunit 6710;
+      PowerBIChartOfAccountsTxt@1042 : TextConst 'ENU=Chart of Accounts';
+
+    [CheckPrecondition]
+    PROCEDURE CheckPreconditions@1002();
+    BEGIN
+    END;
+
+    [TableSyncSetup]
+    PROCEDURE GetTableSyncSetupW1@1003(VAR TableSynchSetup@1000 : Record 2000000135);
+    BEGIN
+      // The purpose of this method is to define how old and new tables will be available for dataupgrade
+
+      // The method is called at a point in time where schema changes have not yet been synchronized to
+      // the database so tables except virtual tables cannot be accessed
+
+      // TableSynchSetup."Table ID":
+      // Id of the table with schema changes (i.e the modified table).
+
+      // TableSynchSetup."Upgrade Table ID":
+      // Id of table where old data will be available in case the selected TableSynchSetup.Mode option is one of Copy or Move , otherwise 0
+
+      // TableSynchSetup.Mode:
+      // An option indicating how the data will be handled during synchronization
+      // Check: Synchronize without saving data in the upgrade table, fails if there is data in the modified field/table
+      // Copy: Synchronize with saving data in the upgrade table, the modified table contains data in matching fields
+      // Move: Synchronize with moving the data in the upgrade table,the changed table is empty; the upgrade logic is handled only by application code
+      // Force: Synchronize without saving data in the upgrade table, disregard if there is data in the modified field/table
+
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Credit Trans Re-export History",
+        DATABASE::"UPG Credit Trans Reexport Hist",TableSynchSetup.Mode::Copy);
+      DataUpgradeMgt.SetTableSyncSetup(452,DATABASE::"UPG Approval Setup",TableSynchSetup.Mode::Move); // Approval Setup
+      DataUpgradeMgt.SetTableSyncSetup(464,DATABASE::"UPG Approval Templates",TableSynchSetup.Mode::Move); // Approval Templates
+      DataUpgradeMgt.SetTableSyncSetup(465,
+        DATABASE::"UPG Additional Approvers",TableSynchSetup.Mode::Move); // Additional Approvers
+      DataUpgradeMgt.SetTableSyncSetup(453,0,TableSynchSetup.Mode::Force); // Approval Code
+      DataUpgradeMgt.SetTableSyncSetup(470,0,TableSynchSetup.Mode::Force); // Job Queue
+      DataUpgradeMgt.SetTableSyncSetup(474,0,TableSynchSetup.Mode::Force); // Job Queue Log Entry
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Approval Entry",DATABASE::"UPG Approval Entry",TableSynchSetup.Mode::Move); // Approval Entry
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Posted Approval Entry",
+        DATABASE::"UPG Posted Approval Entry",TableSynchSetup.Mode::Move);
+      DataUpgradeMgt.SetTableSyncSetup(1541,DATABASE::"UPG Workflow User Group Member",TableSynchSetup.Mode::Move);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Job Ledger Entry",0,TableSynchSetup.Mode::Check);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Job Journal Line",0,TableSynchSetup.Mode::Check);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Job Posting Buffer",0,TableSynchSetup.Mode::Check);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"G/L Account (Analysis View)",0,TableSynchSetup.Mode::Check);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Direct Debit Collection Entry",
+        DATABASE::"UPG Direct Debit Col. Entry",TableSynchSetup.Mode::Copy);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Prod. Order Line",0,TableSynchSetup.Mode::Check);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Service Item Line",0,TableSynchSetup.Mode::Check);
+      DataUpgradeMgt.SetTableSyncSetup(
+        DATABASE::"Payment Method",DATABASE::"Payment Method",TableSynchSetup.Mode::Force);
+      DataUpgradeMgt.SetTableSyncSetup(
+        DATABASE::"Sales Header",DATABASE::"Sales Header",TableSynchSetup.Mode::Force);
+      DataUpgradeMgt.SetTableSyncSetup(824,0,TableSynchSetup.Mode::Force);
+      DataUpgradeMgt.SetTableSyncSetup(825,0,TableSynchSetup.Mode::Force);
+      DataUpgradeMgt.SetTableSyncSetup(826,0,TableSynchSetup.Mode::Force);
+      DataUpgradeMgt.SetTableSyncSetup(827,0,TableSynchSetup.Mode::Force);
+      DataUpgradeMgt.SetTableSyncSetup(828,0,TableSynchSetup.Mode::Force);
+      DataUpgradeMgt.SetTableSyncSetup(829,0,TableSynchSetup.Mode::Force);
+      DataUpgradeMgt.SetTableSyncSetup(830,0,TableSynchSetup.Mode::Force);
+      DataUpgradeMgt.SetTableSyncSetup(
+        DATABASE::"Sales Invoice Header",DATABASE::"UPG Sales Invoice Header",TableSynchSetup.Mode::Copy);
+      DataUpgradeMgt.SetTableSyncSetup(
+        DATABASE::"Sales Cr.Memo Header",DATABASE::"UPG Sales Cr.Memo Header",TableSynchSetup.Mode::Copy);
+      DataUpgradeMgt.SetTableSyncSetup(
+        DATABASE::"Purch. Inv. Header",DATABASE::"UPG Purch. Inv. Header",TableSynchSetup.Mode::Copy);
+      DataUpgradeMgt.SetTableSyncSetup(
+        DATABASE::"Purch. Cr. Memo Hdr.",DATABASE::"UPG Purch. Cr. Memo Hdr.",TableSynchSetup.Mode::Copy);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Service Ledger Entry",0,TableSynchSetup.Mode::Check);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Service Shipment Item Line",0,TableSynchSetup.Mode::Check);
+      DataUpgradeMgt.SetTableSyncSetup(8640,0,TableSynchSetup.Mode::Force);
+      DataUpgradeMgt.SetTableSyncSetup(
+        DATABASE::"Table Permission Buffer",DATABASE::"Table Permission Buffer",TableSynchSetup.Mode::Force);
+
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::Item,DATABASE::"UPG Item",TableSynchSetup.Mode::Copy);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Item Category",DATABASE::"UPG Item Category",TableSynchSetup.Mode::Copy);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Nonstock Item",DATABASE::"UPG Nonstock Item",TableSynchSetup.Mode::Copy);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Stockkeeping Unit",0,TableSynchSetup.Mode::Check);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Phys. Invt. Item Selection",0,TableSynchSetup.Mode::Check);
+      DataUpgradeMgt.SetTableSyncSetup(
+        DATABASE::"SMTP Mail Setup",DATABASE::"UPG SMTP Mail Setup",TableSynchSetup.Mode::Copy);
+      DataUpgradeMgt.SetTableSyncSetup(1305,0,TableSynchSetup.Mode::Force);
+      DataUpgradeMgt.SetTableSyncSetup(1601,0,TableSynchSetup.Mode::Force);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::Job,DATABASE::"UPG Job",TableSynchSetup.Mode::Copy);
+      DataUpgradeMgt.SetTableSyncSetup(5079,0,TableSynchSetup.Mode::Force);
+      DataUpgradeMgt.SetTableSyncSetup(5150,0,TableSynchSetup.Mode::Force);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Custom Report Layout",DATABASE::"UPG Custom Report Layout",TableSynchSetup.Mode::Move);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Report Layout Selection",DATABASE::"UPG Report Layout Selection",TableSynchSetup.Mode::Copy);
+
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"My Customer",0,TableSynchSetup.Mode::Check);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"My Vendor",0,TableSynchSetup.Mode::Check);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"My Item",0,TableSynchSetup.Mode::Check);
+
+      // Manual Setup Add Icon
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Business Setup Icon",0,TableSynchSetup.Mode::Check);
+
+      // Contact Duplicate Search
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Cont. Duplicate Search String",0,TableSynchSetup.Mode::Force);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Duplicate Search String Setup",0,TableSynchSetup.Mode::Force);
+
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Sales & Receivables Setup",0,TableSynchSetup.Mode::Force);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Purchases & Payables Setup",0,TableSynchSetup.Mode::Force);
+
+      // Intrastat Contact Setup
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Company Information",DATABASE::"UPG Company Information",TableSynchSetup.Mode::Copy);
+    END;
+
+    [TableSyncSetup]
+    PROCEDURE GetTableSyncSetupRegion@114(VAR TableSynchSetup@1000 : Record 2000000135);
+    BEGIN
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Post Dated Check Line",0,TableSynchSetup.Mode::Check);
+      DataUpgradeMgt.SetTableSyncSetup(DATABASE::"Item Charge",0,TableSynchSetup.Mode::Check);
+    END;
+
+    [UpgradePerCompany]
+    PROCEDURE UpdateOfficeAdminCredentials@18();
+    VAR
+      OfficeAdminCredentials@1000 : Record 1612;
+      ServicePassword@1001 : Record 1261;
+    BEGIN
+      IF OfficeAdminCredentials.FINDSET THEN
+        REPEAT
+          ServicePassword.INIT;
+          ServicePassword.SavePassword(OfficeAdminCredentials.Password);
+          ServicePassword.INSERT(TRUE);
+          OfficeAdminCredentials.Password := ServicePassword.Key;
+          OfficeAdminCredentials.MODIFY;
+        UNTIL OfficeAdminCredentials.NEXT = 0;
+    END;
+
+    [UpgradePerCompany]
+    PROCEDURE UpdatePostCodeServiceConfig@19();
+    VAR
+      PostcodeServiceConfig@1000 : Record 9091;
+      ServicePassword@1001 : Record 1261;
+    BEGIN
+      IF PostcodeServiceConfig.FINDSET THEN
+        REPEAT
+          ServicePassword.INIT;
+          ServicePassword.SavePassword(PostcodeServiceConfig.ServiceKey);
+          ServicePassword.INSERT(TRUE);
+
+          PostcodeServiceConfig.ServiceKey := ServicePassword.Key;
+          PostcodeServiceConfig.MODIFY;
+        UNTIL PostcodeServiceConfig.NEXT = 0;
+    END;
+
+    [UpgradePerCompany]
+    PROCEDURE UpdateCompanyInfo@1027();
+    VAR
+      CompanyInformation@1000 : Record 79;
+    BEGIN
+      IF STRPOS(COMPANYNAME,'CRONUS') = 1 THEN BEGIN
+        CompanyInformation.GET;
+        CompanyInformation."Demo Company" := TRUE;
+        CompanyInformation.MODIFY;
+      END;
+    END;
+
+    [UpgradePerDatabase]
+    PROCEDURE UpdateSalesIcons@1030();
+    VAR
+      UPGSalesDocumentIcons@1000 : Codeunit 104080;
+      Type@1001 : Integer;
+      TotalIcons@1002 : Integer;
+    BEGIN
+      TotalIcons := 6;
+      FOR Type := 0 TO (TotalIcons - 1) DO
+        UPGSalesDocumentIcons.InsertIcon(Type);
+    END;
+
+    [UpgradePerCompany]
+    PROCEDURE UpdateItem@1510();
+    BEGIN
+      UpdateItemPicture;
+      UpdateItemCategoryPostingGroups;
+      UpdateMyItem;
+      UpgradeProductGroup;
+      UpdateBlockedFields;
+    END;
+
+    LOCAL PROCEDURE UpdateItemPicture@1051();
+    VAR
+      Item@1000 : Record 27;
+      UPGItem@1001 : Record 104067;
+    BEGIN
+      IF NOT Item.FINDSET THEN
+        EXIT;
+
+      UPGItem.SETAUTOCALCFIELDS(Picture);
+
+      REPEAT
+        UPGItem.GET(Item."No.");
+        MoveBlobToMediaSet(UPGItem,Item);
+      UNTIL Item.NEXT = 0;
+    END;
+
+    LOCAL PROCEDURE UpgradeProductGroup@1049();
+    VAR
+      ProductGroup@1000 : Record 5723;
+    BEGIN
+      IF NOT ProductGroup.FINDSET THEN
+        EXIT;
+
+      REPEAT
+        CreateItemCategory(ProductGroup);
+        SaveWarehouseClassCode(ProductGroup);
+      UNTIL ProductGroup.NEXT = 0;
+    END;
+
+    LOCAL PROCEDURE UpdateItemCategoryPostingGroups@3016();
+    VAR
+      UPGItemCategory@1001 : Record 104098;
+      UPGItem@1002 : Record 104067;
+      UPGNonstockItem@1003 : Record 104073;
+      TempItemTemplateCode@1005 : Code[10];
+    BEGIN
+      IF NOT UPGItemCategory.FINDSET THEN
+        EXIT;
+
+      REPEAT
+        UPGItem.SETRANGE("Item Category Code",UPGItemCategory.Code);
+        UPGNonstockItem.SETRANGE("Item Category Code",UPGItemCategory.Code);
+        IF (NOT UPGItem.ISEMPTY) OR (NOT UPGNonstockItem.ISEMPTY) THEN BEGIN
+          CreateItemTemplateFromItemCategory(UPGItemCategory,TempItemTemplateCode);
+          ModifyNonStockItemTemplateCode(UPGNonstockItem,TempItemTemplateCode);
+        END;
+      UNTIL UPGItemCategory.NEXT = 0;
+    END;
+
+    [UpgradePerCompany]
+    PROCEDURE UpdateGeneralLedgerSetup@1020();
+    VAR
+      GeneralLedgerSetup@1000 : Record 98;
+    BEGIN
+      IF NOT GeneralLedgerSetup.GET THEN
+        EXIT;
+      UpdateDimValueGlobalDimNo(GeneralLedgerSetup."Shortcut Dimension 3 Code",3);
+      UpdateDimValueGlobalDimNo(GeneralLedgerSetup."Shortcut Dimension 4 Code",4);
+      UpdateDimValueGlobalDimNo(GeneralLedgerSetup."Shortcut Dimension 5 Code",5);
+      UpdateDimValueGlobalDimNo(GeneralLedgerSetup."Shortcut Dimension 6 Code",6);
+      UpdateDimValueGlobalDimNo(GeneralLedgerSetup."Shortcut Dimension 7 Code",7);
+      UpdateDimValueGlobalDimNo(GeneralLedgerSetup."Shortcut Dimension 8 Code",8);
+    END;
+
+    [UpgradePerCompany]
+    PROCEDURE UpdateReportSelections@1042();
+    VAR
+      ReportSelections@1000 : Record 77;
+    BEGIN
+      ReportSelections.MODIFYALL("Use for Email Attachment",TRUE);
+    END;
+
+    [UpgradePerCompany]
+    PROCEDURE UpdateCustomReportSelection@1043();
+    VAR
+      CustomReportSelection@1000 : Record 9657;
+    BEGIN
+      CustomReportSelection.MODIFYALL("Use for Email Attachment",TRUE);
+    END;
+
+    [UpgradePerCompany]
+    PROCEDURE UpdateReexportDate@1004();
+    VAR
+      UPGCreditTransReExportHist@1000 : Record 104050;
+      CreditTransReExportHistory@1001 : Record 1209;
+    BEGIN
+      WITH UPGCreditTransReExportHist DO BEGIN
+        IF FINDSET THEN
+          REPEAT
+            IF CreditTransReExportHistory.GET("No.") THEN BEGIN
+              CreditTransReExportHistory."Re-export Date" := CREATEDATETIME("Re-export Date",0T);
+              CreditTransReExportHistory.MODIFY;
+            END;
+          UNTIL NEXT = 0;
+        DELETEALL;
+      END;
+    END;
+
+    [UpgradePerCompany]
+    PROCEDURE UpdateDirectDebitCollectionEntry@1022();
+    VAR
+      UPGDirectDebitColEntry@1000 : Record 104065;
+      DirectDebitCollectionEntry@1001 : Record 1208;
+    BEGIN
+      IF UPGDirectDebitColEntry.FINDSET THEN
+        REPEAT
+          DirectDebitCollectionEntry.GET(
+            UPGDirectDebitColEntry."Direct Debit Collection No.",UPGDirectDebitColEntry."Entry No.");
+          DirectDebitCollectionEntry."Mandate ID" := UPGDirectDebitColEntry."Mandate ID";
+          DirectDebitCollectionEntry.MODIFY;
+        UNTIL UPGDirectDebitColEntry.NEXT = 0;
+    END;
+
+    [Normal]
+    LOCAL PROCEDURE UpdateDimValueGlobalDimNo@1001(DimCode@1000 : Code[20];GlobalDimNo@1001 : Integer);
+    VAR
+      DimensionValue@1002 : Record 349;
+    BEGIN
+      IF DimCode = '' THEN
+        EXIT;
+      DimensionValue.SETRANGE("Dimension Code",DimCode);
+      DimensionValue.MODIFYALL("Global Dimension No.",GlobalDimNo);
+    END;
+
+    [UpgradePerCompany]
+    PROCEDURE UpdateSMTPMailSetupEncryptPassword@1340();
+    VAR
+      SMTPMailSetup@1000 : Record 409;
+      UPGSMTPMailSetup@1001 : Record 104082;
+      ServicePassword@1002 : Record 1261;
+    BEGIN
+      IF UPGSMTPMailSetup.FINDSET THEN
+        REPEAT
+          ServicePassword.INIT;
+          ServicePassword.SavePassword(UPGSMTPMailSetup.Password);
+          ServicePassword.INSERT(TRUE);
+
+          SMTPMailSetup.GET(UPGSMTPMailSetup."Primary Key");
+          SMTPMailSetup."Password Key" := ServicePassword.Key;
+          SMTPMailSetup.MODIFY;
+        UNTIL UPGSMTPMailSetup.NEXT = 0;
+    END;
+
+    [UpgradePerCompany]
+    PROCEDURE UpdateApprovalsManagement@1014();
+    BEGIN
+      PrepareWorkflowSetup;
+      UpdateApprovalEntries;
+      UpdateApprovalSetup;
+      UpdateApprovalTemplates;
+      UpdatePostedApprovalEntries;
+      UpdatePostedApprovalComments;
+    END;
+
+    LOCAL PROCEDURE UpdateApprovalEntries@1019();
+    VAR
+      SalesHeader@1001 : Record 36;
+      PurchaseHeader@1002 : Record 38;
+      ApprovalEntry@1000 : Record 454;
+      UPGApprovalEntry@1005 : Record 104077;
+      ReleasePurchaseDocument@1003 : Codeunit 415;
+      ReleaseSalesDocument@1004 : Codeunit 414;
+    BEGIN
+      IF UPGApprovalEntry.FINDSET THEN
+        REPEAT
+          CLEAR(ApprovalEntry);
+          ApprovalEntry.INIT;
+          CopyApprovalEntry(UPGApprovalEntry,ApprovalEntry);
+          ApprovalEntry.INSERT(TRUE);
+        UNTIL UPGApprovalEntry.NEXT = 0;
+
+      IF PurchaseHeader.FINDSET THEN
+        REPEAT
+          FindApprovalEntries(ApprovalEntry,DATABASE::"Purchase Header",PurchaseHeader."Document Type",PurchaseHeader."No.");
+          ApprovalEntry.MODIFYALL("Record ID to Approve",PurchaseHeader.RECORDID);
+          UpdateApprovalComments(
+            DATABASE::"Purchase Header",PurchaseHeader."Document Type",PurchaseHeader."No.",PurchaseHeader.RECORDID);
+          RenameOverdueApprovalEntries(
+            DATABASE::"Purchase Header",PurchaseHeader."Document Type",PurchaseHeader."No.",PurchaseHeader.RECORDID);
+          IF PurchaseHeader.Status = PurchaseHeader.Status::"Pending Approval" THEN BEGIN
+            ReleasePurchaseDocument.Reopen(PurchaseHeader);
+            ApprovalEntry.SETFILTER(Status,'<>%1',ApprovalEntry.Status::Rejected);
+            ApprovalEntry.MODIFYALL(Status,ApprovalEntry.Status::Canceled);
+          END;
+        UNTIL PurchaseHeader.NEXT = 0;
+
+      IF SalesHeader.FINDSET THEN
+        REPEAT
+          FindApprovalEntries(ApprovalEntry,DATABASE::"Sales Header",SalesHeader."Document Type",SalesHeader."No.");
+          ApprovalEntry.MODIFYALL("Record ID to Approve",SalesHeader.RECORDID);
+          UpdateApprovalComments(DATABASE::"Sales Header",SalesHeader."Document Type",SalesHeader."No.",SalesHeader.RECORDID);
+          RenameOverdueApprovalEntries(
+            DATABASE::"Sales Header",SalesHeader."Document Type",SalesHeader."No.",SalesHeader.RECORDID);
+          IF SalesHeader.Status = SalesHeader.Status::"Pending Approval" THEN BEGIN
+            ReleaseSalesDocument.Reopen(SalesHeader);
+            ApprovalEntry.SETFILTER(Status,'<>%1',ApprovalEntry.Status::Rejected);
+            ApprovalEntry.MODIFYALL(Status,ApprovalEntry.Status::Canceled);
+          END;
+        UNTIL SalesHeader.NEXT = 0;
+    END;
+
+    LOCAL PROCEDURE UpdatePostedApprovalEntries@1025();
+    VAR
+      UPGPostedApprovalEntry@1000 : Record 104080;
+      PostedApprovalEntry@1001 : Record 456;
+      PostedRecordID@1002 : RecordID;
+    BEGIN
+      IF UPGPostedApprovalEntry.FINDSET THEN
+        REPEAT
+          GetPostedRecordID(UPGPostedApprovalEntry."Table ID",UPGPostedApprovalEntry."Document No.",PostedRecordID);
+          PostedApprovalEntry.TRANSFERFIELDS(UPGPostedApprovalEntry);
+          PostedApprovalEntry."Entry No." := 0;
+          PostedApprovalEntry."Posted Record ID" := PostedRecordID;
+          PostedApprovalEntry.INSERT(TRUE);
+        UNTIL UPGPostedApprovalEntry.NEXT = 0;
+      UPGPostedApprovalEntry.DELETEALL;
+    END;
+
+    LOCAL PROCEDURE UpdatePostedApprovalComments@1026();
+    VAR
+      PostedApprovalCommentLine@1000 : Record 457;
+      PostedRecordID@1001 : RecordID;
+    BEGIN
+      IF PostedApprovalCommentLine.FINDSET THEN
+        REPEAT
+          GetPostedRecordID(PostedApprovalCommentLine."Table ID",PostedApprovalCommentLine."Document No.",PostedRecordID);
+          PostedApprovalCommentLine."Posted Record ID" := PostedRecordID;
+          PostedApprovalCommentLine.MODIFY;
+        UNTIL PostedApprovalCommentLine.NEXT = 0;
+    END;
+
+    LOCAL PROCEDURE UpdateApprovalSetup@1005();
+    VAR
+      UPGApprovalSetup@1000 : Record 104054;
+      UserSetup@1001 : Record 91;
+    BEGIN
+      IF NOT UPGApprovalSetup.GET THEN
+        EXIT;
+
+      IF UserSetup.GET(UPGApprovalSetup."Approval Administrator") THEN BEGIN
+        UserSetup."Approval Administrator" := TRUE;
+        UserSetup.MODIFY;
+      END;
+
+      UPGApprovalSetup.CALCFIELDS("Approval Template");
+
+      CreateOverdueSetup(UPGApprovalSetup);
+    END;
+
+    LOCAL PROCEDURE UpdateApprovalTemplates@1007();
+    VAR
+      UPGApprovalTemplates@1000 : Record 104055;
+      UPGApprovalSetup@1001 : Record 104054;
+      UPGAdditionalApprovers@1002 : Record 104056;
+    BEGIN
+      IF UPGApprovalSetup.GET THEN;
+
+      IF UPGApprovalTemplates.FINDSET THEN BEGIN
+        REPEAT
+          CreateWorkflowForApprovals(UPGApprovalTemplates,UPGApprovalSetup);
+        UNTIL UPGApprovalTemplates.NEXT = 0;
+      END;
+
+      UPGApprovalTemplates.RESET;
+      UPGApprovalTemplates.DELETEALL;
+      UPGApprovalSetup.DELETEALL;
+      UPGAdditionalApprovers.DELETEALL;
+    END;
+
+    [UpgradePerCompany]
+    PROCEDURE UpdateOfficeHostProviderSetup@1024();
+    BEGIN
+      CODEUNIT.RUN(CODEUNIT::"Setup Office Host Provider");
+    END;
+
+    [UpgradePerCompany]
+    PROCEDURE UpdateAzureADMgtProviderSetup@1066();
+    BEGIN
+      CODEUNIT.RUN(CODEUNIT::"Setup Azure AD Mgt. Provider");
+    END;
+
+    [UpgradePerCompany]
+    PROCEDURE UpdateCustomerPictures@1076();
+    VAR
+      Customer@1000 : Record 18;
+    BEGIN
+      IF NOT Customer.FINDSET THEN
+        EXIT;
+
+      Customer.SETAUTOCALCFIELDS(Picture);
+
+      REPEAT
+        ConvertBlobToMediaSetCustomer(Customer);
+      UNTIL Customer.NEXT = 0;
+    END;
+
+    [UpgradePerCompany]
+    PROCEDURE UpdateVendorPictures@1074();
+    VAR
+      Vendor@1000 : Record 23;
+    BEGIN
+      IF NOT Vendor.FINDSET THEN
+        EXIT;
+
+      Vendor.SETAUTOCALCFIELDS(Picture);
+
+      REPEAT
+        ConvertBlobToMediaSetVendor(Vendor);
+      UNTIL Vendor.NEXT = 0;
+    END;
+
+    [UpgradePerCompany]
+    PROCEDURE UpdateContactPictures@1073();
+    VAR
+      Contact@1000 : Record 5050;
+    BEGIN
+      IF NOT Contact.FINDSET THEN
+        EXIT;
+
+      Contact.SETAUTOCALCFIELDS(Picture);
+
+      REPEAT
+        ConvertBlobToMediaSetContact(Contact);
+      UNTIL Contact.NEXT = 0;
+    END;
+
+    [UpgradePerCompany]
+    PROCEDURE UpdateEmployeePictures@1071();
+    VAR
+      Employee@1000 : Record 5200;
+    BEGIN
+      IF NOT Employee.FINDSET THEN
+        EXIT;
+
+      Employee.SETAUTOCALCFIELDS(Picture);
+
+      REPEAT
+        ConvertBlobToMediaSetEmployee(Employee);
+      UNTIL Employee.NEXT = 0;
+    END;
+
+    [UpgradePerCompany]
+    PROCEDURE UpdateBankAccPictures@1070();
+    VAR
+      BankAccount@1000 : Record 270;
+    BEGIN
+      IF NOT BankAccount.FINDSET THEN
+        EXIT;
+
+      BankAccount.SETAUTOCALCFIELDS(Picture);
+
+      REPEAT
+        ConvertBlobToMediaSetBankAcc(BankAccount);
+      UNTIL BankAccount.NEXT = 0;
+    END;
+
+    [UpgradePerCompany]
+    PROCEDURE UpdateMyCustomer@1057();
+    VAR
+      MyCustomer@1000 : Record 9150;
+      Customer@1001 : Record 18;
+    BEGIN
+      IF NOT MyCustomer.FINDSET(TRUE) THEN
+        EXIT;
+
+      REPEAT
+        IF Customer.GET(MyCustomer."Customer No.") THEN BEGIN
+          MyCustomer.VALIDATE(Name,Customer.Name);
+          MyCustomer.VALIDATE("Phone No." ,Customer."Phone No.");
+          MyCustomer.MODIFY(TRUE);
+        END;
+      UNTIL MyCustomer.NEXT = 0;
+    END;
+
+    [UpgradePerCompany]
+    PROCEDURE UpdateMyVendor@1075();
+    VAR
+      MyVendor@1000 : Record 9151;
+      Vendor@1001 : Record 23;
+    BEGIN
+      IF NOT MyVendor.FINDSET(TRUE) THEN
+        EXIT;
+
+      REPEAT
+        IF Vendor.GET(MyVendor."Vendor No.") THEN BEGIN
+          MyVendor.VALIDATE(Name,Vendor.Name);
+          MyVendor.VALIDATE("Phone No." ,Vendor."Phone No.");
+          MyVendor.MODIFY(TRUE);
+        END;
+      UNTIL MyVendor.NEXT = 0;
+    END;
+
+    [UpgradePerDatabase]
+    PROCEDURE UpgradePermissionSets@1900();
+    VAR
+      PermissionSet@1000 : Record 2000000004;
+      PermissionManager@1001 : Codeunit 9002;
+    BEGIN
+      PermissionSet.SETRANGE(Hash,'');
+      IF PermissionSet.FINDSET THEN
+        REPEAT
+          PermissionManager.UpdateHashForPermissionSet(PermissionSet."Role ID");
+        UNTIL PermissionSet.NEXT = 0;
+    END;
+
+    LOCAL PROCEDURE UpdateMyItem@1072();
+    VAR
+      MyItem@1000 : Record 9152;
+      Item@1001 : Record 27;
+    BEGIN
+      IF NOT MyItem.FINDSET(TRUE) THEN
+        EXIT;
+
+      REPEAT
+        IF Item.GET(MyItem."Item No.") THEN BEGIN
+          MyItem.VALIDATE(Description,Item.Description);
+          MyItem.VALIDATE("Unit Price" ,Item."Unit Price");
+          MyItem.MODIFY(TRUE);
+        END;
+      UNTIL MyItem.NEXT = 0;
+    END;
+
+    LOCAL PROCEDURE CopyApprovalEntry@1023(UPGApprovalEntry@1000 : Record 104077;VAR ApprovalEntry@1001 : Record 454);
+    BEGIN
+      ApprovalEntry."Table ID" := UPGApprovalEntry."Table ID";
+      ApprovalEntry."Document Type" := UPGApprovalEntry."Document Type";
+      ApprovalEntry."Document No." := UPGApprovalEntry."Document No.";
+      ApprovalEntry."Sequence No." := UPGApprovalEntry."Sequence No.";
+      ApprovalEntry."Approval Code" := UPGApprovalEntry."Approval Code";
+      ApprovalEntry."Sender ID" := UPGApprovalEntry."Sender ID";
+      ApprovalEntry."Salespers./Purch. Code" := UPGApprovalEntry."Salespers./Purch. Code";
+      ApprovalEntry."Approver ID" := UPGApprovalEntry."Approver ID";
+      ApprovalEntry.Status := UPGApprovalEntry.Status;
+      ApprovalEntry."Date-Time Sent for Approval" := UPGApprovalEntry."Date-Time Sent for Approval";
+      ApprovalEntry."Last Date-Time Modified" := UPGApprovalEntry."Last Date-Time Modified";
+      ApprovalEntry."Last Modified By User ID" := UPGApprovalEntry."Last Modified By ID";
+      ApprovalEntry."Due Date" := UPGApprovalEntry."Due Date";
+      ApprovalEntry.Amount := UPGApprovalEntry.Amount;
+      ApprovalEntry."Amount (LCY)" := UPGApprovalEntry."Amount (LCY)";
+      ApprovalEntry."Currency Code" := UPGApprovalEntry."Currency Code";
+      ApprovalEntry."Approval Type" := UPGApprovalEntry."Approval Type";
+      ApprovalEntry."Limit Type" := UPGApprovalEntry."Limit Type";
+      ApprovalEntry."Available Credit Limit (LCY)" := UPGApprovalEntry."Available Credit Limit (LCY)";
+    END;
+
+    LOCAL PROCEDURE GetPostedRecordID@1028(TableID@1000 : Integer;DocumentNo@1001 : Code[20];VAR PostedRecordID@1002 : RecordID);
+    VAR
+      RecRef@1003 : RecordRef;
+      FieldRef@1004 : FieldRef;
+      KeyRef@1005 : KeyRef;
+    BEGIN
+      RecRef.OPEN(TableID);
+      KeyRef := RecRef.KEYINDEX(1);
+      FieldRef := KeyRef.FIELDINDEX(1);
+      FieldRef.SETFILTER(DocumentNo);
+      IF RecRef.FINDFIRST THEN
+        PostedRecordID := RecRef.RECORDID;
+    END;
+
+    LOCAL PROCEDURE GetWorkflowApproverType@1006(TemplateApprovalType@1000 : Option;VAR WorkflowApproverType@1001 : Option);
+    VAR
+      WorkflowStepArgument@1002 : Record 1523;
+      UPGApprovalTemplates@1003 : Record 104055;
+    BEGIN
+      CASE TemplateApprovalType OF
+        UPGApprovalTemplates."Approval Type"::" ":
+          WorkflowApproverType := WorkflowStepArgument."Approver Type"::"Workflow User Group";
+        UPGApprovalTemplates."Approval Type"::"Sales Pers./Purchaser":
+          WorkflowApproverType := WorkflowStepArgument."Approver Type"::"Salesperson/Purchaser";
+        UPGApprovalTemplates."Approval Type"::Approver:
+          WorkflowApproverType := WorkflowStepArgument."Approver Type"::Approver;
+      END;
+    END;
+
+    LOCAL PROCEDURE GetWorkflowLimitType@1008(TemplateLimitType@1001 : Option;VAR WorkflowLimitType@1000 : Option);
+    VAR
+      WorkflowStepArgument@1002 : Record 1523;
+      UPGApprovalTemplates@1003 : Record 104055;
+    BEGIN
+      CASE TemplateLimitType OF
+        UPGApprovalTemplates."Limit Type"::"Approval Limits",UPGApprovalTemplates."Limit Type"::"Request Limits":
+          WorkflowLimitType := WorkflowStepArgument."Approver Limit Type"::"Approver Chain";
+        UPGApprovalTemplates."Limit Type"::"Credit Limits",UPGApprovalTemplates."Limit Type"::"No Limits":
+          WorkflowLimitType := WorkflowStepArgument."Approver Limit Type"::"Direct Approver";
+      END;
+    END;
+
+    LOCAL PROCEDURE CreateWorkflowForApprovals@1010(UPGApprovalTemplates@1000 : Record 104055;UPGApprovalSetup@1001 : Record 104054);
+    VAR
+      Workflow@1006 : Record 1501;
+      WorkflowStep@1010 : Record 1502;
+      WorkflowUserGroup@1008 : Record 1540;
+      WorkflowSetup@1002 : Codeunit 1502;
+      WorkflowEventHandling@1009 : Codeunit 1520;
+      WorkflowResponseHandling@1003 : Codeunit 1521;
+      WorkflowApproverType@1005 : Option;
+      WorkflowLimitType@1004 : Option;
+    BEGIN
+      SetWorkflowUserGroup(WorkflowUserGroup,UPGApprovalTemplates);
+      GetWorkflowApproverType(UPGApprovalTemplates."Approval Type",WorkflowApproverType);
+      GetWorkflowLimitType(UPGApprovalTemplates."Limit Type",WorkflowLimitType);
+
+      CASE UPGApprovalTemplates."Table ID" OF
+        DATABASE::"Purchase Header":
+          WorkflowSetup.InsertPurchaseDocumentApprovalWorkflow(Workflow,
+            UPGApprovalTemplates."Document Type",WorkflowApproverType,WorkflowLimitType,
+            WorkflowUserGroup.Code,UPGApprovalSetup."Due Date Formula");
+        DATABASE::"Sales Header":
+          IF UPGApprovalTemplates."Limit Type" <> UPGApprovalTemplates."Limit Type"::"Credit Limits" THEN
+            WorkflowSetup.InsertSalesDocumentApprovalWorkflow(Workflow,
+              UPGApprovalTemplates."Document Type",WorkflowApproverType,WorkflowLimitType,
+              WorkflowUserGroup.Code,UPGApprovalSetup."Due Date Formula")
+          ELSE
+            WorkflowSetup.InsertSalesDocumentCreditLimitApprovalWorkflow(Workflow,
+              UPGApprovalTemplates."Document Type",WorkflowApproverType,WorkflowLimitType,
+              WorkflowUserGroup.Code,UPGApprovalSetup."Due Date Formula");
+        ELSE
+          EXIT;
+      END;
+
+      IF UPGApprovalSetup.Approvals OR UPGApprovalSetup.Delegations THEN
+        WorkflowSetup.SetTemplateForWorkflowStep(
+          Workflow,WorkflowResponseHandling.SendApprovalRequestForApprovalCode);
+
+      IF UPGApprovalSetup.Cancellations THEN
+        WorkflowSetup.SetTemplateForWorkflowStep(Workflow,WorkflowResponseHandling.CancelAllApprovalRequestsCode);
+
+      IF UPGApprovalSetup.Rejections THEN
+        WorkflowSetup.SetTemplateForWorkflowStep(Workflow,WorkflowResponseHandling.RejectAllApprovalRequestsCode);
+
+      IF UPGApprovalSetup."Request Rejection Comment" THEN
+        Workflow.InsertAfterFunctionName(
+          WorkflowEventHandling.RunWorkflowOnRejectApprovalRequestCode,WorkflowResponseHandling.GetApprovalCommentCode,
+          FALSE,WorkflowStep.Type::Response);
+
+      IF UPGApprovalTemplates.Enabled AND (NOT HasMultipleTemplatesForDocType(UPGApprovalTemplates)) THEN BEGIN
+        Workflow.Enabled := TRUE;
+        Workflow.MODIFY;
+      END;
+    END;
+
+    LOCAL PROCEDURE HasMultipleTemplatesForDocType@1021(UPGApprovalTemplates@1000 : Record 104055) : Boolean;
+    VAR
+      UPGApprovalTemplates2@1001 : Record 104055;
+    BEGIN
+      UPGApprovalTemplates2.SETRANGE("Table ID",UPGApprovalTemplates."Table ID");
+      UPGApprovalTemplates2.SETRANGE("Document Type",UPGApprovalTemplates."Document Type");
+      UPGApprovalTemplates2.SETRANGE(Enabled,TRUE);
+      EXIT(UPGApprovalTemplates2.COUNT > 1);
+    END;
+
+    [UpgradePerCompany]
+    PROCEDURE UpdateOnlineMapParameterSetup@1038();
+    VAR
+      OnlineMapParameterSetup@1000 : Record 801;
+    BEGIN
+      OnlineMapParameterSetup.SETFILTER("Map Service",'*bing.com*');
+
+      IF OnlineMapParameterSetup.FINDSET(TRUE) THEN
+        REPEAT
+          OnlineMapParameterSetup."Directions from Location Serv." :=
+            'http://bing.com/maps/default.aspx?rtp=pos.{10}_{11}~adr.{1}+{2}+{6}&v=2&mkt={7}&rtop={9}~0~0';
+          OnlineMapParameterSetup.MODIFY;
+        UNTIL OnlineMapParameterSetup.NEXT = 0;
+    END;
+
+    LOCAL PROCEDURE SetWorkflowUserGroup@1009(VAR WorkflowUserGroup@1005 : Record 1540;UPGApprovalTemplates@1000 : Record 104055);
+    VAR
+      UPGAdditionalApprovers@1001 : Record 104056;
+      WorkflowUserGroupMember@1003 : Record 1541;
+      SequenceNo@1004 : Integer;
+      GroupCode@1002 : Code[20];
+    BEGIN
+      UPGAdditionalApprovers.SETRANGE("Approval Code",UPGApprovalTemplates."Approval Code");
+      UPGAdditionalApprovers.SETRANGE("Approval Type",UPGApprovalTemplates."Approval Type");
+      UPGAdditionalApprovers.SETRANGE("Document Type",UPGApprovalTemplates."Document Type");
+      UPGAdditionalApprovers.SETRANGE("Limit Type",UPGApprovalTemplates."Limit Type");
+      IF UPGAdditionalApprovers.FINDSET THEN BEGIN
+        GroupCode := FORMAT(WorkflowUserGroup.COUNT + 1);
+        CreateWorkflowUserGroup(WorkflowUserGroup,GroupCode,UPGApprovalTemplates."Approval Code");
+        SequenceNo := 1;
+        REPEAT
+          CreateWorkflowUserGroupMember(WorkflowUserGroupMember,WorkflowUserGroup.Code,
+            UPGAdditionalApprovers."Approver ID",SequenceNo);
+          SequenceNo += 1;
+        UNTIL UPGAdditionalApprovers.NEXT = 0;
+      END;
+    END;
+
+    LOCAL PROCEDURE FindApprovalEntries@1065(VAR ApprovalEntry@1000 : Record 454;TableID@1002 : Integer;DocumentType@1003 : Option;DocumentNo@1004 : Code[20]);
+    BEGIN
+      ApprovalEntry.SETRANGE("Table ID",TableID);
+      ApprovalEntry.SETRANGE("Document Type",DocumentType);
+      ApprovalEntry.SETRANGE("Document No.",DocumentNo);
+    END;
+
+    LOCAL PROCEDURE UpdateApprovalComments@1015(TableID@1003 : Integer;DocumentType@1002 : Option;DocumentNo@1000 : Code[20];NewRecordIDToApprove@1004 : RecordID);
+    VAR
+      ApprovalCommentLine@1001 : Record 455;
+    BEGIN
+      ApprovalCommentLine.SETRANGE("Table ID",TableID);
+      ApprovalCommentLine.SETRANGE("Document Type",DocumentType);
+      ApprovalCommentLine.SETRANGE("Document No.",DocumentNo);
+      ApprovalCommentLine.MODIFYALL("Record ID to Approve",NewRecordIDToApprove);
+    END;
+
+    LOCAL PROCEDURE RenameOverdueApprovalEntries@1016(TableID@1000 : Integer;DocumentType@1002 : Option;DocumentNo@1003 : Code[20];NewRecordIDToApprove@1004 : RecordID);
+    VAR
+      OverdueApprovalEntry@1001 : Record 458;
+    BEGIN
+      WITH OverdueApprovalEntry DO BEGIN
+        SETRANGE("Table ID",TableID);
+        SETRANGE("Document Type",DocumentType);
+        SETRANGE("Document No.",DocumentNo);
+        IF FINDSET THEN
+          REPEAT
+            RENAME("Table ID","Document Type","Document No.","Sequence No.","Sent Date","Sent Time",NewRecordIDToApprove);
+          UNTIL NEXT = 0;
+      END;
+    END;
+
+    LOCAL PROCEDURE CreateWorkflowUserGroup@1012(VAR WorkflowUserGroup@1000 : Record 1540;Code@1001 : Code[20];Description@1002 : Text[50]);
+    BEGIN
+      WorkflowUserGroup.INIT;
+      WorkflowUserGroup.Code := Code;
+      WorkflowUserGroup.Description := Description;
+      WorkflowUserGroup.INSERT;
+    END;
+
+    LOCAL PROCEDURE CreateWorkflowUserGroupMember@1013(VAR WorkflowUserGroupMember@1000 : Record 1541;WorkflowUserGroupCode@1001 : Code[20];UserID@1002 : Code[50];SequenceNo@1003 : Integer);
+    BEGIN
+      WorkflowUserGroupMember.INIT;
+      WorkflowUserGroupMember."Workflow User Group Code" := WorkflowUserGroupCode;
+      WorkflowUserGroupMember."User Name" := UserID;
+      WorkflowUserGroupMember."Sequence No." := SequenceNo;
+      WorkflowUserGroupMember.INSERT;
+    END;
+
+    LOCAL PROCEDURE CreateOverdueSetup@1018(UPGApprovalSetup@1005 : Record 104054);
+    VAR
+      Workflow@1007 : Record 1501;
+      WorkflowSetup@1001 : Codeunit 1502;
+      WorkflowResponseHandling@1000 : Codeunit 1521;
+    BEGIN
+      Workflow.GET(WorkflowSetup.InsertOverdueApprovalsWorkflow);
+      WorkflowSetup.SetTemplateForWorkflowStep(
+        Workflow,WorkflowResponseHandling.CreateOverdueNotificationCode);
+      Workflow.Enabled := TRUE;
+      Workflow.MODIFY;
+    END;
+
+    LOCAL PROCEDURE MoveBlobToMediaSet@1050(VAR UPGItem@1000 : Record 104067;VAR Item@1001 : Record 27);
+    VAR
+      PictureInStream@1002 : InStream;
+    BEGIN
+      IF NOT UPGItem.Picture.HASVALUE THEN
+        EXIT;
+
+      UPGItem.Picture.CREATEINSTREAM(PictureInStream);
+      CLEAR(Item.Picture);
+      Item.Picture.IMPORTSTREAM(PictureInStream,'');
+      Item.MODIFY;
+    END;
+
+    LOCAL PROCEDURE ConvertBlobToMediaSetCustomer@1034(VAR Customer@1000 : Record 18);
+    VAR
+      PictureInStream@1002 : InStream;
+    BEGIN
+      IF NOT Customer.Picture.HASVALUE THEN
+        EXIT;
+
+      Customer.Picture.CREATEINSTREAM(PictureInStream);
+      IF NOT ISNULLGUID(Customer.Image.IMPORTSTREAM(PictureInStream,'')) THEN BEGIN
+        CLEAR(Customer.Picture);
+        Customer.MODIFY;
+      END;
+    END;
+
+    LOCAL PROCEDURE ConvertBlobToMediaSetVendor@1033(VAR Vendor@1000 : Record 23);
+    VAR
+      PictureInStream@1002 : InStream;
+    BEGIN
+      IF NOT Vendor.Picture.HASVALUE THEN
+        EXIT;
+
+      Vendor.Picture.CREATEINSTREAM(PictureInStream);
+      IF NOT ISNULLGUID(Vendor.Image.IMPORTSTREAM(PictureInStream,'')) THEN BEGIN
+        CLEAR(Vendor.Picture);
+        Vendor.MODIFY;
+      END;
+    END;
+
+    LOCAL PROCEDURE ConvertBlobToMediaSetContact@1032(VAR Contact@1000 : Record 5050);
+    VAR
+      PictureInStream@1002 : InStream;
+    BEGIN
+      IF NOT Contact.Picture.HASVALUE THEN
+        EXIT;
+
+      Contact.Picture.CREATEINSTREAM(PictureInStream);
+      IF NOT ISNULLGUID(Contact.Image.IMPORTSTREAM(PictureInStream,'')) THEN BEGIN
+        CLEAR(Contact.Picture);
+        Contact.MODIFY;
+      END;
+    END;
+
+    LOCAL PROCEDURE ConvertBlobToMediaSetEmployee@1029(VAR Employee@1000 : Record 5200);
+    VAR
+      PictureInStream@1002 : InStream;
+    BEGIN
+      IF NOT Employee.Picture.HASVALUE THEN
+        EXIT;
+
+      Employee.Picture.CREATEINSTREAM(PictureInStream);
+      IF NOT ISNULLGUID(Employee.Image.IMPORTSTREAM(PictureInStream,'')) THEN BEGIN
+        CLEAR(Employee.Picture);
+        Employee.MODIFY;
+      END;
+    END;
+
+    LOCAL PROCEDURE ConvertBlobToMediaSetBankAcc@1011(VAR BankAccount@1000 : Record 270);
+    VAR
+      PictureInStream@1002 : InStream;
+    BEGIN
+      IF NOT BankAccount.Picture.HASVALUE THEN
+        EXIT;
+
+      BankAccount.Picture.CREATEINSTREAM(PictureInStream);
+      IF NOT ISNULLGUID(BankAccount.Image.IMPORTSTREAM(PictureInStream,'')) THEN BEGIN
+        CLEAR(BankAccount.Picture);
+        BankAccount.MODIFY;
+      END;
+    END;
+
+    [UpgradePerDatabase]
+    PROCEDURE UpdateManualSetupIcons@1180();
+    VAR
+      BusinessSetupIcon@1003 : Record 1876;
+      Convert@1002 : DotNet "'mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089'.System.Convert";
+      ByteArray@1001 : DotNet "'mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089'.System.Array";
+      MemoryStream@1000 : DotNet "'mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089'.System.IO.MemoryStream";
+    BEGIN
+      BusinessSetupIcon.INIT;
+      BusinessSetupIcon."Business Setup Name" := 'Default';
+      ByteArray := Convert.FromBase64String(GetManualSetupDefaultIcon);
+      MemoryStream := MemoryStream.MemoryStream(ByteArray);
+      BusinessSetupIcon.Icon.IMPORTSTREAM(MemoryStream,'Default');
+
+      IF NOT BusinessSetupIcon.INSERT THEN
+        BusinessSetupIcon.MODIFY;
+    END;
+
+    LOCAL PROCEDURE GetManualSetupDefaultIcon@1181() : Text;
+    VAR
+      IconData@1000 : Text;
+    BEGIN
+      IconData += 'iVBORw0KGgoAAAANSUhEUgAAAPAAAADwCAYAAAA+VemSAAAACXBIWXMAAAsSAAALEgHS3X78AAAgAElEQVR42u19T2gbaZr3M9kheyhdhg';
+      IconData += 'G7DMM2NhI7MHYjsYdxg+WLfZgyS5xDpAFn4YuqSXYPn5SYb3eJ5PTSsLEU5uK0dEuYUl/a0FIO6zBYfZAvliFiDiMTh4ZBwoZhISUvzPfBVF06h/k';
+      IconData += 'Olbf8vqXSn5JV0luq5wdNx8a2pKr6vc//3/OjH374n78CAoHwJG7gJUAgkMAIBAIJjEAgkMAIBBIYgUAggREIBBIYgUAggREIJDACgUACIxAIJDAC';
+      IconData += 'gQRGIBBIYAQCgQRGIBBIYAQCCYxAIJDACAQCCYxAIJDACAQSGIFAIIERCAQSGIFAAiMQCCQwAoFAAiMQCCQwAoEERiAQSGAEAoEERiAQSGAEAgmMQ';
+      IconData += 'CAmhR/jJfAeVLUN799fgqbp0GyeU99rO/o7c3OzIIqzH/89A6I4a/4f4Q38CBd8803UZvMCms1zaDbPQVXb0GpdjOW1g8F5CAQEiEQ+hVBoAUKheS';
+      IconData += 'Q2EhjRC43GGTQaZ9BsnkOjcQa6rnP1/gRBgFBoHiKRTyESWYJIZAlvGhLY3xb2+LhuEncQwtKWEQBMEgUCAoRCC45ev9k8B03TzcPj6nsanJ6+G+h';
+      IconData += 'vrKwsQySyBKury2ihkcD+IW2lUu3pDtPWLhRaAFGccUzQUbrwjcZbaDYveh4yojgD0egySNL62N8rEhjhGjRNh8PDak/SCoJguqWRyBK3BFDVtukx';
+      IconData += 'HB/XuxJaFGcgFttEy4wE9nZMW6lUoVI56uoORyJLnrZYzeY51Gp1qNXedD2cVlaWYWNjHaLRZXwokMD8W9ta7Q0oyj6o6qWvLFO/8IB89o2NdQgEB';
+      IconData += 'HxYkMB8EbdUOoBS6aDDrRQEAVZXlyEW2/RNbKiqbSiVDuDw8Mj2esTjm7CxsYbuNRKYX+IGg/MQj2+CJK37+hpVKlU4PKzaZrYlaQ1keQuJjATmh7';
+      IconData += 'grK8sQj29indQmXi6XDzpyAsQix+Ob6FojgcdjUexiXLQmg7vXirJvS2RZ3oJ4fBMvEhLYHQuSz7/ocAWRuKMlsijOQCazjR4MEnh07rKifAPl8mv';
+      IconData += 'm++HwIsjyXXzQRkDk3d29joNxZWUZdna20a1GAg+PWq0O+fwLxl0WxRlIpR5gXXPEaDTOIJvdY661IAiws7ON1xoJ7Nzq5vMvOty7RGILky0uQ1H2';
+      IconData += 'O5KDaI2RwI5i3UzmKWMJgsF5yGS2scd3gm61IAiQyz3BkAUJ3Pv0Lxb3O6yuLG/hxZkASqUDUJR9xhrHYrcglXqAFwcJzLrMu7t7cHJSR6vLoTVOp';
+      IconData += '58y7ZnB4DwUCs9871Ijgbu4zLHYLZDluxhzcewdCYIAhULO1wes7wlcq9Vhd3fPdNEEQYCHD+/7vv2RVzQaZ5BOP2Vc6kzmkW/vl68JXCodQKHwEl';
+      IconData += '3mKXCp/RoX+5bA2eweUyIKhxchl/sCXWYP5SysZT5JWoNMZhsJ7Dfy+vHGT2tc7LeD2FcEtju1k8n72DzvcVQqVchmnzOhkF8y1L4hsKbpkEw+ZuI';
+      IconData += 'mPyc/pg3WZKRfSOwLAiN5/YFm8xySybSvSOyL3Uj5/Ask7wgsXDa7N9DPkqEEsvZlXAiFFqBQyIEgGIRttS4gmXxsal+jBfYgrAkrJK8zz+XwsArl';
+      IconData += '8oHZ5NKvrVTTdEgkkubPh8OLEI/fHus0kZ0lLhYLSGAkr39c0XL5wFb3WRAE+PrrfFfxArtecoDxK1JaSTytlYapJbA1M4nkHeyadROfoxEOL0Kh8';
+      IconData += 'MyWNLKc6vm7RKFzHAomtVodMpmn5tfT2OzxN1988e9fTmO89uWXvzG/Tibvw+3bG8jQLiiVDuDLL38DlcqRrZa1JBnyr3/6038DAICqXkIgIMAvfv';
+      IconData += 'Fz5uf+9V//A/785//HXPc///n/Mt/78OEDtFoXUC6/hmbzHBYX/x4CgYArn+uTT34Gc3MzUKsZAyrff/9HmJubmapOu6lLYjWb57C7u8c8fFjn7R/';
+      IconData += 'rWokrijOQTN6HSuVbyGS2YWdnG0RxhnGV6eRQqXTAJAqJ8EGxWIB8PgeStNbxuicnddfIe3X/1yGR2KLCqudjT64hgR08iJnMVaN7OLyIHVYDwDog';
+      IconData += 'n80+gXJZYZRHAgGBcT91XTcPSiJOR5OfTnRFIkuQyWxDpfItQ2RRnBlLPCzLW8zrJpNpUNU2Epg37O5e6SkFg/OQy32B7BwAVpcyFJq3/blodBlWV';
+      IconData += 'pYZCxqN/iPEYp9bpoPsD81AQGAIO05ljVTqAQSD8+bhk04/RQLzFseRYXxBECCTQf2kQREICObDDXC1K9gODx/eN+us9i7rWk9i0n87GFwY62csFJ';
+      IconData += '4xNeJ8/gUSmJe4lx4LfPjwPo4EXsON7kVgUZztWgcWBKFvlpeOk8etbRUIGJpaBOXyazPB5VX8eFriXtoCYLnoem50vyRPPL5p290UiSz19Hrog8F';
+      IconData += 'YYD7+QzYSWYJEYsusVe/u7sGrV4pnvTXPE1hRvmHiXhQ7u74FbrUuQNP0ng/1MCJ/NIG7xdnjgCxvQaPxFk5P35nJONoyows9JjQaZ8y2BIx77VGr';
+      IconData += '1SGRSH7sTKvaZmCt5ZxebvTw9+utrcW3vq6i7EM6/RQSiaRr12RnZ9uMh09OjJ3GaIHH7DrTzfWJxBbGvV1weGgs3G61LszWUkEQIBJZglBoASKRp';
+      IconData += 'Y6ETrN5PvL+ZbrWXC6/BlGchbm5WWg03kKzeW7bAVar1V3poyaxPMmdfPXVS4hGP/OcAfBsK2U+/8K0vtPcrH590rQhFvvc0e+4tQXB2p886Htx07';
+      IconData += '1NJh+bB4fbr4UuNPUgWF1nRDfrezXMIQhsucgOkrQGudwTVyyRddzPDtb3eHJSd7XpwupKuxE6oAXucWri1oTeiMVk03Ul8kGapkOzeQ6NxpmZzAH';
+      IconData += 'oPqTgxgFMLLEozkAksgTB4ILp0lvft9tDCLQ6qSjOQLmsIIHdAj1lJIozUCwWMHHVBdZpnErl267XqtE4g1BoYeBraZD/ylrNzc1AMLgwcB6CWNVu';
+      IconData += 'E0k0qQRBgO+++9bVa5VIJM0atZeMgueSWHTPrSxvIXl7us9VxjXuda0GaaogPc92c8IEpA+6Xy2+3yjhxsa6SWBd16FSqbpa30+lHkAqlTYPD69so';
+      IconData += 'LzhNfLSSg/YsNGbbPSep1jsehNZlUoV7t1LQaVy1DMJpaqXkM0+v7aUTSAgMAMIpdKBq9crElky+7x1XXf99XxHYE1jL6os30WW9rS+V8mrYHD+Wi';
+      IconData += 'U2ErZYiRsMzoMkrUE4vNiRmDo9fQd37sjXGt2jD51W68L1McCHD++b/y4W9z0xseQZAtMLn8PhRdwROwDpCN6/vxy659cQs3tuIdYtqNV+B8ViATK';
+      IconData += 'ZbSgUnsF3330LipJnMsi6btTqh7HEmqZDucxaQevXo4YozjJWnw7XkMAjtL47O1g26uc+08P3um70iyeTjx1ZFbJylUAQBMjnc10zwqHQAhSLBYjF';
+      IconData += 'bjGW06k7WqlU4c4dmdEzAwD4y1/cV5ekk1eGQkkbCTxK60vkXRC9LUmh8AwymUeMa3t6+g7u3UsNbFkOD6uM27yzsz2Q55NKPYBweJG5f4NYYVVtQ';
+      IconData += 'zL5uMNdF8UZyOdzY2my8JoV9gyBR5WM8RMkaR1evVIYi6jrOhSL+5BIJPs2LdBuuCStOWpppBskdF2HWu1Nz59XlH2IxT7vaKc0JocKYw2ZaCt8fF';
+      IconData += 'znWleaewJXKlUm9sV+Z2cgUjj5fI6JT1utC1CUb3q6z/TsrtOMvyjODjxj3GicdUjRhsOLoCj5iZQKaSvMe0aaewJj5nk0iESWoFgsMAJvvWDN+A5';
+      IconData += 'jAenD9v37ds/3RiOZvA+FwrOJHtZsLFxFAg+DRuPMtAKk5Q5xPdCkmJsbLJdAJ8ScHhrDgAcVUVGcNeN4Vb3klsRcE5i+aNjvPBrQlrWXVaRhpxU9';
+      IconData += '6AE8DHiRuYnHb5v/prvakMADQNN0ZnY1Gv0M2XdN4iaTj23XnvSz1MOSkT4seuk/W//2MCUvNxCNLpvex+npOy5LStwSmM5arq4uY8/zNQ5CRdkHW';
+      IconData += 'U4xGV5RnGEsjBWBgMC4zv2yyHavSxOzlzsdCi10xOZOS15ugU7e0d1tSOA+wNLRKA5BQ0rHanVjsVtQLBb6loXoh7dcfu3ICtPLtgGM4YReh4Usb9';
+      IconData += 'l2cg1a8nILGxtrtiEdErhnzNVmkldYOnJudZPJx5DJPGXiV1KaSaUeDOTRxOObTCPIoDt/aY1ucmAM8nqkkyuZZLWnW60LSKXSE9FxFsVZ81BR1Uv';
+      IconData += 'u1rJwSeDj4zoThyCGiXmvariCIAxVmgkEBKZtVVUvQZa7u7Wkk4rW6DbGC52V/+LxTfj66zyzBQLA6OmetBvNmxXmcqCfHq5WlDxa4CFAa4ZdV2mD';
+      IconData += '/ls0SGPN+/eX0Gqdd2SrBUGAQiE39P2zrivN53MTKSXSumK8KXZwZ4HpDiB0n4cHXUs9PX13LdcvlXoAmcyjju+fnr6Dcvn1R90qlrzB4Py1yGvE3';
+      IconData += 'QeMJZ9UHwDPbjR3BKazneg+X++howcKrjuKJ0nrUC7/1nZNKPu6M2b/8nXIq2k6E0pNug+AdqN5Er7jTlKHvjhY+70eNjbWzdLR8XEdUqnu2xaazf';
+      IconData += 'O+hBPFWchktiGVegCNxpmlziswonSDuKWBQKDr+6EnoXjoA1hdXTZj+1rtDTc7p7kjMDl1ifA44npWg8gQkYkgYkkIAYk4na7rIElrA0n0BgICRKP';
+      IconData += 'LQ3tItCplMDjPCMyTUVHaY+ChD0AUZ0EUZ0BVL+H09F3f1TO+JHCzeW6eukje0ZGY1IEVZR8OD6u2GxAAwOx8c1Nn2yruTjZG0C44IQov7jNBJLJk';
+      IconData += 'XqNG44yLEI+rGHjQzh2EEzd6jXJbL7uSlyYxvbLGTfLau9bsewyHF7kRcKCfSV4SWUjgKYcoznbUU2lyJBJbkM0+YTqgKpUjV2ZgreQ1XPZHIElrX';
+      IconData += 'TdG9Gr3nCSB6UVt6EJ/RKt1daph+WiUVngdWq1zc/uBXbIpElkCSfq1+fWgo4ZOEArNM3uIiKtO4nLSP23E5m9BVS+5qkRY42AkMAVN0xnN52mDqr';
+      IconData += 'ZNbahhY8xS6QBarXOIxTYdHXCDJJw0TetqbUZnwT7t+eCzyTE+x0eDwQXzOR0kc+8bAtMxxTRZ31qtDoeHVaY3OBr9zLFlUdW2WcaoVI4gGJyHeHx';
+      IconData += 'zZCsx6fBFFGf6/s1S6QDm5mbNnyMPcy/iG6ogna/nJYRCC+a9bLWQwLYPkNcJTGRwjWXanf27+fwLiESWHBGPlnc1Hp4LyGafgyC8hI2NNYjHN6+V';
+      IconData += '7KEP0H7Wt1KpMv3OBIIgwKtXStfPRd9XXde5sGDDxMHkEGo2z0GSJvt+uEli0cPSXpWNbTTOIJvdA0n69Udl/8sun/Wyp6CcHWG6uZ66rkO5/Bpis';
+      IconData += 'c8hmXw8dLP9oAlETdPhq69edn0vvSaGAgHBIqx37rl7TB84PGSiuSEwLe/ipQy0oRxShUQiCalUukOMnMT0JNtKUC6/HugBsBImGJyHfD5nm1k+PX';
+      IconData += '0H2exz+NWvfv2xgaM98Gega7G9rr91zrfzsDnq6R4PqlTJKwIBwRx1HFZqaCpdaGJhhhVQmwRx8/kXXTf1CYIAq6vLIMtbpkcRjX7G/Hw+/6LvlFA';
+      IconData += '+/4L5+5nMthlrqmobDg+POlx1MghfLO7DyorxHnq5qtaD5P37S1svqNE4Y2J5stFeVdtw716K+VzFYsH2mvV6Xe9Y4fmPEjuTJzB3wwzeIbBmu6lP';
+      IconData += 'FGcgk3kEr14pkMlsM0QIBARmgdbp6bue9dZG44yx6LHYLYaIojgLsrwF5bICmcwj2+y93aRQL/cZACCVSkMsJkOlUjVJp2k60+AhCFezwuR90PE5P';
+      IconData += 'TOsqm3IZvfgzh2ZGUtstS64Fk3vBrrENmkvggsL7MUEFl0TJG6yLN/t6/5L0jrTzqgo+7CxsW6b+KHjyX6D8ZK0DpK0Dqrahq++eslYyn7vibiF9G';
+      IconData += 'FE1oQKwkuzF9na3ki/53h8EyqVqumKl0oHEAgIUKu96Rq/B4PzoGma5/TOeMrRcGeBe6kX8gaaGIFAYODYnVa50HW9I8NMiE3HpYPK4IjiLHMIBoP';
+      IconData += 'zfX8vHt+E7777FjKZRx0dUcZy7SPGcobDi7bTOHR9W9d1KBRe2pJXktZAUfJQLBY8mbCcm5vhJgzgzgLTF4d3BIMLAHDk2JUSxdmPM7P7pptbqVSZ';
+      IconData += 'h5l2rVdWnE3+0G1+TjwaYsUN171qm5CzHkBsbLjAfC5raCFJ6xCPb3peYZS+T5MOAX7M88XxkgXWdf3jWs/B3r8sbzHJJ+sOXjrWpOPmQUDrYQ2T0';
+      IconData += 'SftlrK8BaXSARweXsX6icRWz89IXGk6tIjHb0+tOIO1g833BPYS7MTPJWnwA8gYjk/3JbqTQ40eyRyWwPRhmko9AFm+C7XaGzg+rvcd7QsEBMhkts';
+      IconData += '2h92lcBctTLZiLGJi+CF5yoYmFsQsFBrV03SaFSPzqVPmBfg+CIIyEQIGAAJK0PvB+3khkCVKpB1O7x5mnEIALC0y7IV676XSD/jCn8aiXVtPdTTi';
+      IconData += 'SOf24gZdgdHEwD3VNnKlGAiOuGQdPCqraZmq1OFPtHnhpp0QCWwhQq9UdWVFrg/4kkxp09nkYC2xVmkT0OrjnuSAwZqEplEoHZsNCMDhv9hzTaolW';
+      IconData += '0N1HBgnewqSG0a0yL9nsXlfxAFVtM8qU5DMMqkyJ4ANIYAr0+kiilkjvKKblTw2FwmpH/bbXFj63EY1+xtRsaZVJWkLWbg3K1YF05Lh0hUACTxyVS';
+      IconData += 'rXnmJyu63ByUoeTk7o50G2FMTI4OQJHIktQKOQY8bhK5ahrR1Wvg4wXKVcExsADPrRXg/BErXFlZZlZc9kL2eyTiZL3KjZbgEIhN/D7pj8rfZghBs';
+      IconData += 's3THp6Di0wGIknuul+Y2OdIeNVnGj83+p+ZjKPuGoVJCS2yriSMIAOBeiYmEwwqeol1Gp13E3VA+S6IoE5gHULntWShkILTElGVdvQbF5Ao/EWQqE';
+      IconData += 'FLixvNxKXywd9E3HG5zaWoZGDrFT6LyQwxsCDgR4hdDIQMApYt+ANQkZjFniW+wc8FFpwlFGOx2+bBDYUJ9qYzEICD/agEfetm5yLm7Ev7WbSq0jG';
+      IconData += 'cXjQQuZ2Vr+f5RwlotFlRqSgVDqAVOoBssTmviGBOXSfV1aWx0IWVW2Douz3zA7TMfnKyjLE45tjaY2kl6EdHh4hgbvkTOiDdpLgLgs9qJLiKGBNS';
+      IconData += 'I1j56ui7EMs9rmj0s7JSR1SqTSk009dP/1pD8RQ48CM9KDhn28tMC2W/f79+FrTaNULUZxx1cJpmg7J5GOma4sgHF6ESORTy+HytkOO5uSkDolEEr';
+      IconData += 'LZJ66d/KI4C5K0Zh4wpdIBl0k6XozMpEcLuXOhx6VwQJdNAABisc2xklcQBIjHN3tIzGyBphlLucmSbuN9X0IymYZCIecaiSVp3SRwq3XhyQ0KboI';
+      IconData += '2MuhCw2T2rtJtkyQWdmuSyEreYHAevv4636Hs2OmeCR9j0gIjCq/rOiSTaVfc6WbzvGNrBJ0nQIw3zPNgDDweF9pKHFW9hFQqDdns3kiJYVWXlKQ1';
+      IconData += 'x2qMRKbGSmI7NcvreAmKsg+ynOpw3bGUZLXA/GwR4YbARJpmXASOxzehXP5thxh6pXIEd+7II0nekJWitOW9zqSPlcQnJ/WReA2NxhkkEskONclwe';
+      IconData += 'BEUJY990R1eCh9tlFwReBJq96I4C4XCM8hkHjG9w7quQzb7HJLJx9dyl0qlA6bGPAr5HENraoay8N8M/bc0TYd0+imkUmnm4BQEAZLJ+1AoPMPY1+';
+      IconData += 'aa8dJGyRWBaTdt3DGGJK3Dq1cKY90AjFpsLPY5syZk2DhbktZGJjBHW0TSMTXM4XLnjswk8sj7fPVKGUtJzZvWl6891twQeBKJLLs4M5/PdWwnKBb';
+      IconData += '3IRaTHRHFKu86yiy3JK0zHgPdCjoIksnHUCi8ZN6fKM5APp+DTGbb88LrboK3NUDcEJgXrV2jJl2ARGKLIYmqXjqqUVs33o/6ZrNies6uF52kEgQB';
+      IconData += 'EgljQRqK4DmzwMZmDiSwaQFJTNFtGdY4IctbHTGrkweczmS7ESvRBwKdFXWKXO4JJqkcgD4s0QJbQJ9o0ySuZu2ymny+YQaZOARo1U+7Va6+J7DXt';
+      IconData += '7d7BX/5i44X4ZrxLy+HMhK4z4nbzS12duPfcvUgsnuA28jMIQjMS3mNKwKHQgtm4sha3hgnyDZ6q+KkE7eezuRa9ZpH8zC9HcnDlM0+H3n3mR8IzI';
+      IconData += 'uYA3etlKuryxO1wpVK9WMnFtsrHQ4vOlq8Zl09OsqYXtN0JtHnlMDWevcou88w/vU5gekHv1Z7M9YblEw+hmz2eYcQHOlKctKIEQotMMmiUQ4E0O2';
+      IconData += 'ZhjX4zNHvk3o3/f7o7jPcztAJutbu9Hr7isD0xanVxuNGkyF7a/nqul1J9BxtpXI0Eo9C03SGwJK0NlTjRSSyBOWyAokEW0I6PX0HspwCRdlHt9ri';
+      IconData += 'mdkZGSSwTexIOqFU9dJVa9BonEEsJnc08Y+qKyke32SaQUYRa6bT/znSDi9Z3rId6igW9yGRSI7tEOXdfSYTZW405UwVgTstlztxmaLsdzTxA8BIu';
+      IconData += '5KsfcvGMP7joUmcze4xXkIsdmskD1O3oQ5VvYRM5ink8y/QfTY9RL6USLkkMJ3IcssCWC1rOLwI5fJvR96VFI9vMlsPWq0Lx3Emic/pxFowOA+yfH';
+      IconData += 'fkB+erVwrzfhGsEeFNXohLAovirOtutHUJWSTyqWuD6zs728yARKt1AbKcgmx2r+dnU9U25PMv4N49dsg+GJyHQuGZK0MHgYDQcW38PJnEs/sMwLG';
+      IconData += 'sbDy+adZhy+WDka+8NORqrsTbKpWqaz3BgYAAhcIz2N3dY+rbZPGYKM58FNUzunuazXPmwaHhJnkJSqX/YjwTPytysCOh/In7cbvcjM5GHx/XXcmI';
+      IconData += '0gkgsg/ILQQCAuRyTyCZvN+xeExVL+H09B0Ui/tQLO7DyUndlryJxBYUiwVXyauq7Y49Ueg+k2uxhgR2aiEBjBqlGzXhUGiBcW1py+OmZ/HqlVG+G';
+      IconData += 'WSoQBCM6+BGfG5vfQ8sr+1fAtdqdaZ5g0dPhOvNDLS8qaLsu/Iw0a76uPYBkey0LG+Zmw817apbi8RZZCnZpFxGv6ty0Ac6r54I1wSORJYgGJyHVu';
+      IconData += 'sCVPUSGo2zkT/Q0ehnIAhX6hTj3gdk3Xw4aXdxUnuieAMdSthtrEQX2oGFJLiOgFsva0g/qIeHR33j7UbjDBRlH9JpvmuklUoVksnHoCj7ppUf1H0';
+      IconData += 'e154oXkHroPEcRnC/3EyS1uGrrwwLeXr6zpUtAYbE7Gsm3iY3zbpB0E4thMcdwbVanQkNyOqaYHCeWfBNSNpsnjOJMz8nr1S1bYZuZIMGEviaBCPt';
+      IconData += 'jm6UlKzLrYnFsj7U3UCIwguJm83zrqLvrdYF85nITihalkcUZ3y93Ju2vqury1yL/N3wCoFJ6aVSOXJlCD0ev02dwJdQqRz1JK81g5zNPudiHM9wm';
+      IconData += '9MdipPdrY3xWWnPws+ZZ9r6AgD3emF/88UX//4l7xf15s2b8MMPH+D09My0MKN28T755GdQqVS7xonB4Dysra3CP/1TDP7lX/4XyPJdmJubYWrHtV';
+      IconData += 'odNE2DX/7yHyZG3mz2OXz48IEi4xoUCs8gHt+EX/zi5/B3f/czAPhrzw0YudwTuHnzpi8JnM+/NA9uSVrj/jDzzILveHzT3HRwevrOlYw0WW4tCAI';
+      IconData += 'TJ3Z7HXJzaeWOSc7SWl9bktbMcCMQECAaXf7oGm+ZP99onEGjcQat1jmo6uXQ44lofSeDH/3ww//81UuxCYmFw+FFKBSejfTva5oO79+3HSfJEomk';
+      IconData += 'eWonElsTu/G1Wh0ymafU179z/ACTnIAfkU4/NVtdJ3kfpy4Gpk9EWjt61DFnICA4Jq+m6UysPMlhb+trOxUQEMVZ35K30Tgzyct75tmzBLa6NTyoR';
+      IconData += 'lhJMkkC0+L4wxDYz6Dr+d2XriOBRxKn0qtIrfpQk4w7rTuVBrXgdkQjE0nXscK8ydnyilLpgBkZ9NKmih978YKnUg9AllMAYEi/RKPLE2tHpEkyjP';
+      IconData += 'W1jhiyLu2M4+mjSGTJTMS4IWc7bVDVNlP3HXWPAVpgG4RCCxCL3TK/zmb3JvZe6PqpU7X+Wq3eU/96GA/DTTnbacTu7p5ZM19ZWfbcgrcbXr3wsnz';
+      IconData += 'XjPdarYuhd/iOMv4NhQZ3oTVNH6iPuljcd0RCUZxl5o0xDu7tOpMDWBAE2NnZ9txn8CyByT7fYR/0Uce/hqrG4BlcRfmGaabI53NQq/0OarXfQbn8';
+      IconData += 'W4aETgcmrrN61K+u88OH9z1Z/77h5ZsQiSx1uNLjzEqzy66WHBGfDE8AGA0X9O+L4ixTxjg9fefIlcYlcc5dZ6+2j97w+o2wutLjHO+jydFonA1cl';
+      IconData += '6ZjdkEQbOePZXmLyWoPWjKr1eqMeomqXqJAe4f3s+9513lqCBwICJDNXi3iNoTi3B8qUNW2ZcvfJWSzz+FXv/o15PMvupaAFGWfafyQ5a2urhtNbF';
+      IconData += '3Xu04YkW0NsZgMmczTjpFHtMLstaCF/Hd2tj3dOuqJYYZ++OlPfwKBgAC///0fAADgD384g1/+8h/gpz/9iYuv+iO4efMmqGqbsXAfPnyA77//I5T';
+      IconData += 'Lr6HZPIe//dub8MknPzNJv7t7NWwQDi/Cv/3b/+76CnNzs6BpGnz//R8BAOBPf/pviESWYG5ulnkYv/zyN/D73/+hw9IKggC3b0sfR+ICvievpunw';
+      IconData += 'z//8f8zrH4vd8rxskKd6ofuB7mUdh/zqldWvwuFh1XbY34hpDUkWqyCAouT71q81TYc7d2TT2pNGA7r5wIpgcB7i8U2IRj/z7WCC3XVMJh+b1ywYn';
+      IconData += 'IdiseD5zzVVBNY0HRKJJKMkOOqBh35udal0AIeHR4x7bQcnzfLWIYVuIONvXqtljgPZ7B6jsvH11/mp6PueKgIDGBleeqCdHqkb50FSq73paiWH6b';
+      IconData += 'BKJh/bWnhi3b3Uvztu0FNsg3o+SOAJwmqxksn7E4t1SHaanjPN59Jb2MYAAAQASURBVHOOraSqtuHevRRT+tjYWPe19M2g4Q09r53JPJoqxZGpJDC';
+      IconData += 'PN07TdDg8rIKqtoeWrS2VDkBV2xCPb/paMXLYgzwWuzVWyWAk8Ajjnmk8fRF8h1JIYCQxYgTknZaMsx1uTPvNzGS2zR1LBqH5UI9EjI+846xEIIFd';
+      IconData += 'QCr1gGlLRBL7i7zTnJ33BYHJfl4k8fTCqoftB/L6IgamQWZw6Zh4kiUmxOjIS1cc/EJe3xH4yvqyia1pzVD6AdYmjXB4EXK5L3zT1OJLAtuR2G83f';
+      IconData += 'hq9KT8exL4lMIDRGFEovGRcr0xme2ra7KYVqtqGdPop06Y6jU0aSOABUKvVGXUGQRDg4cP7WCvmFI3GGaTTT5lhET/X9n1PYACj/JDJPGU0qmKxWy';
+      IconData += 'DLd9Gl5jjeFQQBCoWcrz0mJDAVU1k1mtGl5tdl9lOmGQl8jVMewDuLrqY1T6Eo+4zL7Nd4Fwl8DZcarfH4re7u7h4zAy0IAuRyT1CwAAk8mEutKN8';
+      IconData += 'w8q/EGuPwvPteENkFTbCysux5ATok8ARQq9U/qkxeWWNRnIFU6gEO048YjcYZZLN7zLUmsq94rZHAI7fG4fAiyPJddOlccJcBjMaMVOoBWl0k8Ohi';
+      IconData += '43z+he2DZiwfR5UMp8RVlH2mm4p4OJnMNh6MSGB3UKlUQVH2GVcPiXx94gqCALK8hcMlSODxuNWl0kFHsgXASLjE45toQWw8mHL5wJa48fgmJgeRw';
+      IconData += 'HwRmQis+70ts5fwPca5SGDuiSwIAqyuLkMstumbOnIvkXticTc21jDcQALzR+Ra7Y1tjAxgJGhisU1YXV2euodXVdtwfFyHSqXaVdA+FtuEjY11tL';
+      IconData += 'hIYP5hJ+pudbEjkSWQpHXPWuZm89xcadptVxOK0COBPW+VDw+rXS0TcSsjkSXzP14JraptaDTOoNE4g+PjetcdUNPsaSCBfYx+biZN6FBoHiKRTyE';
+      IconData += 'UWgBRnBk7qVW1Dc3mBTSb59BovIVm86Ln0jZRnIFodNnTHgUSGOGYzMSi9dtoSNzuQECASORTAACzVBUICI5J02yemzuFyRJw43ta11Wpdu5xJLKE';
+      IconData += 'lhYJjCBENizeYIQeJ2ivgLj6CCQwYgAXttk8B1Vt93S7Rwna0odCCxAKzaOFRQIjRkXs9+8vQdN0aDbPqe+1Hf2dublZk5RzczMgirPm/xFIYAQC4';
+      IconData += 'TJu4CVAIJDACAQCCYxAIJDACAQSGIFAIIERCAQSGIFAIIERCCQwAoFAAiMQCCQwAoEERiAQSGAEAoEERiAQSGAEAgmMQCCQwAgEAgmMQCCQwAgEEh';
+      IconData += 'iBQCCBEQgEEhiBQAIjEAgkMAKBQAIjEAgkMAKBBEYgEEhgBAKBBEYgEEhgBAIJjEAgJoX/D5PJL0xH01oxAAAAAElFTkSuQmCC';
+      EXIT(IconData);
+    END;
+
+    LOCAL PROCEDURE PrepareWorkflowSetup@1017();
+    VAR
+      Workflow@1000 : Record 1501;
+      WorkflowStep@1007 : Record 1502;
+      WorkflowStepInstance@1008 : Record 1504;
+      WorkflowTableRelation@1001 : Record 1505;
+      WorkflowTableRelationValue@1009 : Record 1506;
+      WorkflowUserGroup@1002 : Record 1540;
+      WorkflowUserGroupMember@1003 : Record 1541;
+      WorkflowStepArgument@1006 : Record 1523;
+      WorkflowEventHandling@1004 : Codeunit 1520;
+      WorkflowResponseHandling@1005 : Codeunit 1521;
+      WorkflowSetup@1010 : Codeunit 1502;
+      WorkflowRequestPageHandling@1012 : Codeunit 1522;
+    BEGIN
+      WorkflowTableRelationValue.DELETEALL;
+      WorkflowTableRelation.DELETEALL;
+      WorkflowStepArgument.DELETEALL;
+      WorkflowStepInstance.DELETEALL;
+      WorkflowStep.DELETEALL;
+      Workflow.SETRANGE(Template,TRUE);
+      Workflow.SETFILTER(Code,'%1*',WorkflowSetup.GetWorkflowTemplateToken);
+      Workflow.DELETEALL;
+      WorkflowUserGroup.DELETEALL;
+      WorkflowUserGroupMember.DELETEALL;
+
+      WorkflowEventHandling.CreateEventsLibrary;
+      WorkflowResponseHandling.CreateResponsesLibrary;
+      WorkflowSetup.InsertApprovalsTableRelations;
+      WorkflowSetup.InsertWorkflowCategories;
+      WorkflowRequestPageHandling.CreateEntitiesAndFields;
+      WorkflowRequestPageHandling.AssignEntitiesToWorkflowEvents;
+    END;
+
+    [UpgradePerCompany]
+    PROCEDURE UpdateJobOverBudgetValue@1052();
+    VAR
+      Job@1000 : Record 167;
+      UPGJob@1002 : Record 104093;
+      JobTask@1001 : Record 1001;
+      JobLedgerEntry@1006 : Record 169;
+      JobPlanningLine@1005 : Record 1003;
+      UsageCost@1004 : Decimal;
+      ScheduleCost@1003 : Decimal;
+    BEGIN
+      IF UPGJob.FINDSET THEN
+        REPEAT
+          UsageCost := 0;
+          ScheduleCost := 0;
+          JobTask.SETRANGE("Job No.",UPGJob."No.");
+          IF JobTask.FINDFIRST THEN BEGIN
+            JobLedgerEntry.SETFILTER("Job No.",'%1',UPGJob."No.");
+            IF JobLedgerEntry.FINDSET THEN BEGIN
+              REPEAT
+                UsageCost := UsageCost + JobLedgerEntry."Total Cost (LCY)";
+              UNTIL JobLedgerEntry.NEXT = 0;
+            END;
+
+            JobPlanningLine.SETFILTER("Job No.",'%1',UPGJob."No.");
+            JobPlanningLine.SETFILTER("Schedule Line",'=1');
+            IF JobPlanningLine.FINDSET THEN BEGIN
+              REPEAT
+                ScheduleCost := ScheduleCost + JobPlanningLine."Total Cost (LCY)";
+              UNTIL JobPlanningLine.NEXT = 0;
+            END;
+
+            IF Job.GET(UPGJob."No.") THEN BEGIN
+              IF UsageCost > ScheduleCost THEN
+                Job."Over Budget" := TRUE
+              ELSE
+                Job."Over Budget" := FALSE;
+              Job.MODIFY;
+            END;
+          END;
+        UNTIL UPGJob.NEXT = 0;
+    END;
+
+    [UpgradePerCompany]
+    PROCEDURE UpdateSalesInvCrMemoCancellationInfo@1036();
+    VAR
+      UPGSalesInvoiceHeader@1000 : Record 104094;
+      UPGSalesCrMemoHeader@1001 : Record 104095;
+      CancelledDocument@1002 : Record 1900;
+    BEGIN
+      UPGSalesInvoiceHeader.SETFILTER("Canceled By",'<>%1','');
+      IF UPGSalesInvoiceHeader.FINDSET THEN
+        REPEAT
+          IF UPGSalesCrMemoHeader.GET(UPGSalesInvoiceHeader."Canceled By") THEN
+            CancelledDocument.InsertSalesInvToCrMemoCancelledDocument(UPGSalesInvoiceHeader."No.",UPGSalesCrMemoHeader."No.");
+        UNTIL UPGSalesInvoiceHeader.NEXT = 0;
+    END;
+
+    LOCAL PROCEDURE CreateItemCategory@1053(ProductGroup@1000 : Record 5723);
+    VAR
+      UPGItem@1003 : Record 104067;
+      ItemCategory@1001 : Record 5722;
+      Item@1004 : Record 27;
+      NewItemCategoryCode@1002 : Code[10];
+    BEGIN
+      NewItemCategoryCode := GetUniqueItemCategoryCode(ProductGroup);
+
+      ItemCategory.INIT;
+      ItemCategory.Code := NewItemCategoryCode;
+      ItemCategory."Parent Category" := ProductGroup."Item Category Code";
+      ItemCategory.Description := ProductGroup.Description;
+      ItemCategory.INSERT;
+
+      UPGItem.SETRANGE("Item Category Code",ProductGroup."Item Category Code");
+      UPGItem.SETRANGE("Product Group Code",ProductGroup.Code);
+      IF UPGItem.FINDSET THEN
+        REPEAT
+          Item.GET(UPGItem."No.");
+          Item."Item Category Code" := NewItemCategoryCode;
+          Item.MODIFY(TRUE);
+          UpdateItemCategoryCodeOnLinesRecords(UPGItem,ItemCategory);
+        UNTIL UPGItem.NEXT = 0;
+    END;
+
+    LOCAL PROCEDURE SaveWarehouseClassCode@1054(ProductGroup@1002 : Record 5723);
+    VAR
+      Item@1001 : Record 27;
+      UPGItem@1000 : Record 104067;
+      UPGNonstockItem@1005 : Record 104073;
+      NonstockItem@1004 : Record 5718;
+      TempItemTemplateCode@1003 : Code[10];
+    BEGIN
+      UPGItem.SETRANGE("Item Category Code",ProductGroup."Item Category Code");
+      UPGItem.SETRANGE("Product Group Code",ProductGroup.Code);
+      IF UPGItem.FINDSET THEN
+        REPEAT
+          Item.GET(UPGItem."No.");
+          Item."Warehouse Class Code" := ProductGroup."Warehouse Class Code";
+          Item.MODIFY;
+        UNTIL UPGItem.NEXT = 0;
+
+      UPGNonstockItem.SETRANGE("Product Group Code",ProductGroup.Code);
+      IF UPGNonstockItem.FINDSET THEN BEGIN
+        CreateItemTemplateFromProductGroup(ProductGroup,TempItemTemplateCode);
+        REPEAT
+          NonstockItem.GET(UPGNonstockItem."Entry No.");
+          NonstockItem.VALIDATE("Item Template Code",TempItemTemplateCode);
+          NonstockItem.MODIFY;
+        UNTIL UPGNonstockItem.NEXT = 0;
+      END;
+    END;
+
+    [UpgradePerCompany]
+    PROCEDURE UpdatePurchInvCrMemoCancellationInfo@1031();
+    VAR
+      UPGPurchInvoiceHeader@1002 : Record 104096;
+      UPGPurchCrMemoHeader@1001 : Record 104097;
+      CancelledDocument@1003 : Record 1900;
+    BEGIN
+      UPGPurchInvoiceHeader.SETFILTER("Canceled By",'<>%1','');
+      IF UPGPurchInvoiceHeader.FINDSET THEN
+        REPEAT
+          IF UPGPurchCrMemoHeader.GET(UPGPurchInvoiceHeader."Canceled By") THEN
+            CancelledDocument.InsertPurchInvToCrMemoCancelledDocument(UPGPurchInvoiceHeader."No.",UPGPurchCrMemoHeader."No.");
+        UNTIL UPGPurchInvoiceHeader.NEXT = 0;
+    END;
+
+    [UpgradePerDatabase]
+    PROCEDURE UpgradeCustomReportLayout@1041();
+    VAR
+      UPGCustomReportLayout@1000 : Record 104052;
+      CustomReportLayout@1001 : Record 9650;
+      ReportLayoutSelection@1003 : Record 9651;
+    BEGIN
+      UPGCustomReportLayout.SETAUTOCALCFIELDS(Layout,"Custom XML Part");
+      IF NOT UPGCustomReportLayout.FINDSET THEN
+        EXIT;
+
+      REPEAT
+        CLEAR(CustomReportLayout);
+        CustomReportLayout.TRANSFERFIELDS(UPGCustomReportLayout,FALSE);
+        CustomReportLayout.Code := GetReportLayoutCode(UPGCustomReportLayout.ID);
+        CustomReportLayout.INSERT(TRUE);
+      UNTIL UPGCustomReportLayout.NEXT = 0;
+    END;
+
+    [UpgradePerDatabase]
+    PROCEDURE UpgradeReportLayoutSelection@3015();
+    VAR
+      UPGReportLayoutSelection@1000 : Record 104089;
+      ReportLayoutSelection@1001 : Record 9651;
+      Code@1003 : Code[20];
+      CustomReportLayoutID@1002 : Integer;
+    BEGIN
+      IF NOT UPGReportLayoutSelection.FINDSET THEN
+        EXIT;
+
+      REPEAT
+        ReportLayoutSelection.GET(UPGReportLayoutSelection."Report ID",UPGReportLayoutSelection."Company Name");
+        ReportLayoutSelection."Custom Report Layout Code" := GetReportLayoutCode(UPGReportLayoutSelection."Custom Report Layout ID");
+        ReportLayoutSelection.MODIFY;
+      UNTIL UPGReportLayoutSelection.NEXT = 0;
+    END;
+
+    LOCAL PROCEDURE GetReportLayoutCode@3010(ID@1001 : Integer) : Code[20];
+    VAR
+      UPGCustomReportLayout@1004 : Record 104052;
+      DummyCustomReportLayout@1000 : Record 9650;
+      NewCode@1003 : Code[20];
+      NonPaddedCode@1005 : Code[20];
+      PaddingStringLength@1002 : Integer;
+    BEGIN
+      IF ID <= 0 THEN
+        EXIT('');
+
+      UPGCustomReportLayout.GET(ID);
+      NonPaddedCode := STRSUBSTNO('%1-%2',UPGCustomReportLayout."Report ID",ID);
+      PaddingStringLength := MAXSTRLEN(DummyCustomReportLayout.Code) - STRLEN(NonPaddedCode);
+
+      IF PaddingStringLength > 0 THEN
+        NewCode := STRSUBSTNO('%1-%2%3',UPGCustomReportLayout."Report ID",PADSTR('',PaddingStringLength,'0'),ID)
+      ELSE
+        NewCode := NonPaddedCode;
+
+      EXIT(NewCode);
+    END;
+
+    [Normal]
+    LOCAL PROCEDURE CreateItemTemplateFromItemCategory@1140(UPGItemCategory@1001 : Record 104098;VAR ItemTemplateCode@1000 : Code[10]);
+    VAR
+      TempItemTemplate@1002 : TEMPORARY Record 1301;
+    BEGIN
+      CLEAR(TempItemTemplate);
+      TempItemTemplate.VALIDATE(Code,GetUniqueItemTemplateCodeFromItemCategory(UPGItemCategory));
+      IF UPGItemCategory.Description <> '' THEN
+        TempItemTemplate.VALIDATE("Template Name",UPGItemCategory.Description)
+      ELSE
+        TempItemTemplate.VALIDATE("Template Name",UPGItemCategory.Code);
+      TempItemTemplate.INSERT(TRUE);
+      TempItemTemplate.VALIDATE("Gen. Prod. Posting Group",UPGItemCategory."Def. Gen. Prod. Posting Group");
+      TempItemTemplate.VALIDATE("Inventory Posting Group",UPGItemCategory."Def. Inventory Posting Group");
+      TempItemTemplate.VALIDATE("VAT Prod. Posting Group",UPGItemCategory."Def. VAT Prod. Posting Group");
+      TempItemTemplate.VALIDATE("Costing Method",UPGItemCategory."Def. Costing Method");
+      TempItemTemplate.VALIDATE("Tax Group Code",UPGItemCategory."Def. Tax Group Code");
+      TempItemTemplate.MODIFY(TRUE);
+      ItemTemplateCode := TempItemTemplate.Code;
+    END;
+
+    [Normal]
+    LOCAL PROCEDURE CreateItemTemplateFromProductGroup@1251(ProductGroup@1001 : Record 5723;VAR ItemTemplateCode@1000 : Code[10]);
+    VAR
+      UPGItemCategory@1003 : Record 104098;
+      TempItemTemplate@1002 : TEMPORARY Record 1301;
+    BEGIN
+      CLEAR(TempItemTemplate);
+      TempItemTemplate.VALIDATE(Code,GetUniqueItemTemplateCodeFromProductGroup(ProductGroup));
+      IF ProductGroup.Description <> '' THEN
+        TempItemTemplate.VALIDATE("Template Name",ProductGroup.Description)
+      ELSE
+        TempItemTemplate.VALIDATE("Template Name",ProductGroup.Code);
+      TempItemTemplate.INSERT(TRUE);
+      UPGItemCategory.GET(ProductGroup."Item Category Code");
+      TempItemTemplate.VALIDATE("Gen. Prod. Posting Group",UPGItemCategory."Def. Gen. Prod. Posting Group");
+      TempItemTemplate.VALIDATE("Inventory Posting Group",UPGItemCategory."Def. Inventory Posting Group");
+      TempItemTemplate.VALIDATE("VAT Prod. Posting Group",UPGItemCategory."Def. VAT Prod. Posting Group");
+      TempItemTemplate.VALIDATE("Costing Method",UPGItemCategory."Def. Costing Method");
+      TempItemTemplate.VALIDATE("Tax Group Code",UPGItemCategory."Def. Tax Group Code");
+      TempItemTemplate.VALIDATE("Warehouse Class Code",ProductGroup."Warehouse Class Code");
+      TempItemTemplate.MODIFY(TRUE);
+      ItemTemplateCode := TempItemTemplate.Code;
+    END;
+
+    [Normal]
+    LOCAL PROCEDURE GetUniqueItemTemplateCodeFromProductGroup@1127(ProductGroup@1000 : Record 5723) : Code[10];
+    VAR
+      DummyConfigTemplateHeader@1001 : Record 8618;
+      ItemTemplateCode@1002 : Code[10];
+    BEGIN
+      ItemTemplateCode := GetUniqueItemTemplateCode(COPYSTR(ProductGroup.Code,1,MAXSTRLEN(DummyConfigTemplateHeader.Code)));
+      IF ItemTemplateCode = '' THEN
+        ERROR(UnableToUpgradeProductGroupErr,ProductGroup."Item Category Code",ProductGroup.Code);
+
+      EXIT(ItemTemplateCode);
+    END;
+
+    [Normal]
+    LOCAL PROCEDURE GetUniqueItemTemplateCodeFromItemCategory@1129(UPGItemCategory@1000 : Record 104098) : Code[10];
+    VAR
+      DummyConfigTemplateHeader@1002 : Record 8618;
+      ItemTemplateCode@1001 : Code[10];
+    BEGIN
+      ItemTemplateCode := GetUniqueItemTemplateCode(COPYSTR(UPGItemCategory.Code,1,MAXSTRLEN(DummyConfigTemplateHeader.Code)));
+      IF ItemTemplateCode = '' THEN
+        ERROR(UnableToUpgradeItemCategoryErr,UPGItemCategory.Code);
+
+      EXIT(ItemTemplateCode);
+    END;
+
+    [Normal]
+    LOCAL PROCEDURE GetUniqueItemTemplateCode@1120(CandidateCode@1000 : Code[10]) : Code[10];
+    VAR
+      ConfigTemplateHeader@1001 : Record 8618;
+    BEGIN
+      IF NOT ConfigTemplateHeader.GET(CandidateCode) THEN
+        EXIT(CandidateCode);
+
+      IF STRLEN(CandidateCode) < MAXSTRLEN(CandidateCode) - 2 THEN
+        CandidateCode += '1'
+      ELSE
+        CandidateCode := COPYSTR(CandidateCode,1,STRLEN(CandidateCode) - 2) + '1';
+
+      WHILE ConfigTemplateHeader.GET(CandidateCode) DO
+        IF STRLEN(INCSTR(CandidateCode)) < MAXSTRLEN(CandidateCode) THEN
+          CandidateCode := INCSTR(CandidateCode)
+        ELSE
+          EXIT('');
+
+      EXIT(CandidateCode);
+    END;
+
+    [Normal]
+    LOCAL PROCEDURE GetUniqueItemCategoryCode@1221(ProductGroup@1000 : Record 5723) : Code[10];
+    VAR
+      ItemCategory@1001 : Record 5722;
+      CandidateCode@1002 : Code[10];
+    BEGIN
+      CandidateCode := ProductGroup.Code;
+      IF NOT ItemCategory.GET(CandidateCode) THEN
+        EXIT(CandidateCode);
+
+      IF STRLEN(CandidateCode) < MAXSTRLEN(CandidateCode) - 2 THEN
+        CandidateCode += '1'
+      ELSE
+        CandidateCode := COPYSTR(CandidateCode,1,STRLEN(CandidateCode) - 2) + '1';
+
+      WHILE ItemCategory.GET(CandidateCode) DO
+        IF STRLEN(INCSTR(CandidateCode)) < MAXSTRLEN(CandidateCode) THEN
+          CandidateCode := INCSTR(CandidateCode)
+        ELSE
+          ERROR(UnableToUpgradeProductGroupErr,ProductGroup."Item Category Code",ProductGroup.Code);
+
+      EXIT(CandidateCode);
+    END;
+
+    [Normal]
+    LOCAL PROCEDURE ModifyNonStockItemTemplateCode@1149(UPGNonstockItem@1000 : Record 104073;ItemTemplateCode@1001 : Code[10]);
+    VAR
+      NonstockItem@1002 : Record 5718;
+    BEGIN
+      IF UPGNonstockItem.FINDSET THEN
+        REPEAT
+          NonstockItem.GET(UPGNonstockItem."Entry No.");
+          IF NonstockItem."Product Group Code" = '' THEN BEGIN
+            NonstockItem."Item Template Code" := ItemTemplateCode;
+            NonstockItem.MODIFY;
+          END;
+        UNTIL UPGNonstockItem.NEXT = 0;
+    END;
+
+    [UpgradePerCompany]
+    PROCEDURE UpdateDataExchUnitOfMeasureMapping@1151();
+    VAR
+      PurchaseLine@1001 : Record 39;
+    BEGIN
+      UpdateDataExchColumnDefRecord(
+        'OCRINVOICE','OCRINVLINES','InvoiceLineUnitOfMeasure',
+        '','/Document/Tables/Table/TableRows/TableRow/ItemFields/ItemField[Type[text()=''LIT_DeliveredQuantityUnitCode'']]/Text');
+      UpdateDataExchFieldMappingRecord(
+        'OCRINVOICE','OCRINVLINES',
+        DATABASE::"Purchase Line",PurchaseLine.FIELDNO("Unit of Measure"),
+        DATABASE::"Purchase Line",PurchaseLine.FIELDNO("Unit of Measure Code"));
+      UpdateDataExchFieldMappingRecord(
+        'PEPPOLINVOICE','PEPPOLINVLINES',
+        DATABASE::"Purchase Line",PurchaseLine.FIELDNO("Unit of Measure"),
+        DATABASE::"Purchase Line",PurchaseLine.FIELDNO("Unit of Measure Code"));
+      UpdateDataExchFieldMappingRecord(
+        'PEPPOLCREDITMEMO','PEPPOLCRMEMOLINES',
+        DATABASE::"Purchase Line",PurchaseLine.FIELDNO("Unit of Measure"),
+        DATABASE::"Purchase Line",PurchaseLine.FIELDNO("Unit of Measure Code"));
+    END;
+
+    [UpgradePerCompany]
+    PROCEDURE InsertDataExchVendorIdMapping@1300();
+    VAR
+      Vendor@1001 : Record 23;
+    BEGIN
+      InsertDataExchColumnDefRecord(
+        'OCRINVOICE','OCRINVHEADER',18,'Supplier ID','Buy-from Vendor ID',
+        '/Document/Parties/Party[Type[text()=''supplier'']]/ExternalId','');
+      InsertDataExchColumnDefRecord(
+        'OCRCREDITMEMO','OCRCRMEMOHEADER',18,'Supplier ID','Buy-from Vendor ID',
+        '/Document/Parties/Party[Type[text()=''supplier'']]/ExternalId','');
+      InsertDataExchFieldMappingRecord(
+        'OCRINVOICE','OCRINVHEADER',18,
+        DATABASE::"Intermediate Data Import",0,DATABASE::Vendor,Vendor.FIELDNO(Id),
+        '',TRUE);
+      InsertDataExchFieldMappingRecord(
+        'OCRCREDITMEMO','OCRCRMEMOHEADER',18,
+        DATABASE::"Intermediate Data Import",0,DATABASE::Vendor,Vendor.FIELDNO(Id),
+        '',TRUE);
+    END;
+
+    LOCAL PROCEDURE DoesDataExchLineExist@1301(DataExchDefCode@1005 : Code[20];Code@1006 : Code[20]) : Boolean;
+    VAR
+      DataExchLineDef@1011 : Record 1227;
+    BEGIN
+      DataExchLineDef.SETRANGE("Data Exch. Def Code",DataExchDefCode);
+      DataExchLineDef.SETRANGE(Code,Code);
+      EXIT(DataExchLineDef.FINDFIRST);
+    END;
+
+    LOCAL PROCEDURE DoesDataExchMappingExist@1302(DataExchDefCode@1005 : Code[20];DataExchLineDefCode@1006 : Code[20]) : Boolean;
+    VAR
+      DataExchMapping@1000 : Record 1224;
+    BEGIN
+      DataExchMapping.SETRANGE("Data Exch. Def Code",DataExchDefCode);
+      DataExchMapping.SETRANGE("Data Exch. Line Def Code",DataExchLineDefCode);
+      EXIT(DataExchMapping.FINDFIRST);
+    END;
+
+    LOCAL PROCEDURE InsertDataExchColumnDefRecord@1303(DataExchDefCode@1005 : Code[20];DataExchLineDefCode@1006 : Code[20];ColumnNo@1000 : Integer;Name@1007 : Text[250];Description@1001 : Text[50];Path@1002 : Text[250];Constant@1003 : Text[30]);
+    VAR
+      DataExchColumnDef@1011 : Record 1223;
+    BEGIN
+      IF NOT DoesDataExchLineExist(DataExchDefCode,DataExchLineDefCode) THEN
+        EXIT;
+      DataExchColumnDef.SETRANGE("Data Exch. Def Code",DataExchDefCode);
+      DataExchColumnDef.SETRANGE("Data Exch. Line Def Code",DataExchLineDefCode);
+      DataExchColumnDef.SETRANGE("Column No.",ColumnNo);
+      IF DataExchColumnDef.FINDFIRST THEN
+        EXIT;
+      DataExchColumnDef.INIT;
+      DataExchColumnDef.VALIDATE("Data Exch. Def Code",DataExchDefCode);
+      DataExchColumnDef.VALIDATE("Data Exch. Line Def Code",DataExchLineDefCode);
+      DataExchColumnDef.VALIDATE("Column No.",ColumnNo);
+      DataExchColumnDef.VALIDATE(Name,Name);
+      DataExchColumnDef.VALIDATE(Description,Description);
+      DataExchColumnDef.VALIDATE(Path,Path);
+      DataExchColumnDef.VALIDATE(Constant,Constant);
+      DataExchColumnDef.INSERT;
+    END;
+
+    LOCAL PROCEDURE InsertDataExchFieldMappingRecord@1304(DataExchDefCode@1005 : Code[20];DataExchLineDefCode@1006 : Code[20];ColumnNo@1001 : Integer;TableId@1007 : Integer;FieldId@1008 : Integer;TargetTableId@1003 : Integer;TargetFieldId@1004 : Integer;TransformationRule@1012 : Code[20];Optional@1002 : Boolean);
+    VAR
+      DataExchFieldMapping@1000 : Record 1225;
+    BEGIN
+      IF NOT DoesDataExchMappingExist(DataExchDefCode,DataExchLineDefCode) THEN
+        EXIT;
+      DataExchFieldMapping.SETRANGE("Data Exch. Def Code",DataExchDefCode);
+      DataExchFieldMapping.SETRANGE("Data Exch. Line Def Code",DataExchLineDefCode);
+      DataExchFieldMapping.SETRANGE("Table ID",TableId);
+      DataExchFieldMapping.SETRANGE("Column No.",ColumnNo);
+      DataExchFieldMapping.SETRANGE("Field ID",FieldId);
+      IF DataExchFieldMapping.FINDFIRST THEN
+        EXIT;
+      DataExchFieldMapping.INIT;
+      DataExchFieldMapping.VALIDATE("Data Exch. Def Code",DataExchDefCode);
+      DataExchFieldMapping.VALIDATE("Data Exch. Line Def Code",DataExchLineDefCode);
+      DataExchFieldMapping.VALIDATE("Table ID",TableId);
+      DataExchFieldMapping.VALIDATE("Column No.",ColumnNo);
+      DataExchFieldMapping.VALIDATE("Field ID",FieldId);
+      DataExchFieldMapping.VALIDATE(Optional,Optional);
+      DataExchFieldMapping.VALIDATE("Target Table ID",TargetTableId);
+      DataExchFieldMapping.VALIDATE("Target Field ID",TargetFieldId);
+      DataExchFieldMapping.VALIDATE("Transformation Rule",TransformationRule);
+      DataExchFieldMapping.INSERT;
+    END;
+
+    LOCAL PROCEDURE UpdateDataExchColumnDefRecord@1152(DataExchDefCode@1005 : Code[20];DataExchLineDefCode@1006 : Code[20];ColumnName@1007 : Text[250];NewConstant@1000 : Text[30];NewPath@1009 : Text[250]);
+    VAR
+      DataExchColumnDef@1011 : Record 1223;
+    BEGIN
+      DataExchColumnDef.SETRANGE("Data Exch. Def Code",DataExchDefCode);
+      DataExchColumnDef.SETRANGE("Data Exch. Line Def Code",DataExchLineDefCode);
+      DataExchColumnDef.SETRANGE(Name,ColumnName);
+      IF DataExchColumnDef.FINDFIRST THEN BEGIN
+        DataExchColumnDef.VALIDATE(Constant,NewConstant);
+        DataExchColumnDef.VALIDATE(Path,NewPath);
+        DataExchColumnDef.MODIFY;
+      END;
+    END;
+
+    LOCAL PROCEDURE UpdateDataExchFieldMappingRecord@1153(DataExchDefCode@1005 : Code[20];DataExchLineDefCode@1006 : Code[20];OldTableId@1007 : Integer;OldFieldId@1008 : Integer;NewTableId@1010 : Integer;NewFieldId@1009 : Integer);
+    VAR
+      DataExchFieldMapping@1000 : Record 1225;
+    BEGIN
+      DataExchFieldMapping.SETRANGE("Data Exch. Def Code",DataExchDefCode);
+      DataExchFieldMapping.SETRANGE("Data Exch. Line Def Code",DataExchLineDefCode);
+      DataExchFieldMapping.SETRANGE("Table ID",OldTableId);
+      DataExchFieldMapping.SETRANGE("Field ID",OldFieldId);
+      IF DataExchFieldMapping.FINDFIRST THEN BEGIN
+        DataExchFieldMapping.VALIDATE("Table ID",NewTableId);
+        DataExchFieldMapping.VALIDATE("Field ID",NewFieldId);
+        DataExchFieldMapping.MODIFY;
+      END;
+    END;
+
+    [UpgradePerCompany]
+    PROCEDURE UpdateDuplicateSearchStringSetup@1222();
+    VAR
+      DuplicateSearchStringSetup@1000 : Record 5095;
+    BEGIN
+      DuplicateSearchStringSetup.DELETEALL;
+      DuplicateSearchStringSetup.CreateDefaultSetup;
+    END;
+
+    LOCAL PROCEDURE CreateTenantWebServiceColumn@1078(TenantWebServiceRecordId@1002 : RecordID;FieldNumber@1000 : Integer;DataItem@1003 : Integer);
+    VAR
+      TenantWebServiceColumns@1001 : Record 6711;
+      FieldTable@1004 : Record 2000000041;
+      ODataUtility@1005 : Codeunit 6710;
+      FieldNameConverted@1006 : Text;
+    BEGIN
+      TenantWebServiceColumns.INIT;
+      TenantWebServiceColumns."Entry ID" := 0;
+      TenantWebServiceColumns."Data Item" := DataItem;
+      TenantWebServiceColumns."Field Number" := FieldNumber;
+      TenantWebServiceColumns.TenantWebServiceID := TenantWebServiceRecordId;
+      TenantWebServiceColumns.Include := TRUE;
+
+      IF FieldTable.GET(DataItem,FieldNumber) THEN
+        FieldNameConverted := ODataUtility.ConvertNavFieldNameToOdataName(FieldTable.FieldName);
+
+      TenantWebServiceColumns."Field Name" := COPYSTR(FieldNameConverted,1,250);
+      TenantWebServiceColumns.INSERT;
+    END;
+
+    [UpgradePerCompany]
+    PROCEDURE CreateJobWebServices@1077();
+    VAR
+      TenantWebService@1000 : Record 2000000168;
+    BEGIN
+      TenantWebService.INIT;
+      TenantWebService."Object Type" := TenantWebService."Object Type"::Page;
+      TenantWebService."Object ID" := PAGE::"Job List";
+      TenantWebService."Service Name" := COPYSTR(JobListTxt,1,MAXSTRLEN(TenantWebService."Service Name"));
+      TenantWebService.Published := TRUE;
+
+      IF TenantWebService.INSERT THEN BEGIN
+        CreateTenantWebServiceColumn(TenantWebService.RECORDID,1,DATABASE::Job);
+        CreateTenantWebServiceColumn(TenantWebService.RECORDID,3,DATABASE::Job);
+        CreateTenantWebServiceColumn(TenantWebService.RECORDID,5,DATABASE::Job);
+        CreateTenantWebServiceColumn(TenantWebService.RECORDID,19,DATABASE::Job);
+        CreateTenantWebServiceColumn(TenantWebService.RECORDID,20,DATABASE::Job);
+        CreateTenantWebServiceColumn(TenantWebService.RECORDID,2,DATABASE::Job);
+        CreateTenantWebServiceColumn(TenantWebService.RECORDID,1036,DATABASE::Job);
+
+        CreateTenantWebServiceOData(TenantWebService);
+      END;
+
+      CLEAR(TenantWebService);
+
+      TenantWebService.INIT;
+      TenantWebService."Object Type" := TenantWebService."Object Type"::Page;
+      TenantWebService."Object ID" := PAGE::"Job Task Lines";
+      TenantWebService."Service Name" := COPYSTR(JobTaskLinesTxt,1,MAXSTRLEN(TenantWebService."Service Name"));
+      TenantWebService.Published := TRUE;
+
+      IF TenantWebService.INSERT THEN BEGIN
+        CreateTenantWebServiceColumn(TenantWebService.RECORDID,1,DATABASE::"Job Task");
+        CreateTenantWebServiceColumn(TenantWebService.RECORDID,2,DATABASE::"Job Task");
+        CreateTenantWebServiceColumn(TenantWebService.RECORDID,3,DATABASE::"Job Task");
+        CreateTenantWebServiceColumn(TenantWebService.RECORDID,4,DATABASE::"Job Task");
+        CreateTenantWebServiceColumn(TenantWebService.RECORDID,21,DATABASE::"Job Task");
+        CreateTenantWebServiceColumn(TenantWebService.RECORDID,7,DATABASE::"Job Task");
+        CreateTenantWebServiceColumn(TenantWebService.RECORDID,6,DATABASE::"Job Task");
+        CreateTenantWebServiceColumn(TenantWebService.RECORDID,9,DATABASE::"Job Task");
+        CreateTenantWebServiceColumn(TenantWebService.RECORDID,66,DATABASE::"Job Task");
+        CreateTenantWebServiceColumn(TenantWebService.RECORDID,67,DATABASE::"Job Task");
+        CreateTenantWebServiceColumn(TenantWebService.RECORDID,10,DATABASE::"Job Task");
+        CreateTenantWebServiceColumn(TenantWebService.RECORDID,11,DATABASE::"Job Task");
+        CreateTenantWebServiceColumn(TenantWebService.RECORDID,12,DATABASE::"Job Task");
+        CreateTenantWebServiceColumn(TenantWebService.RECORDID,13,DATABASE::"Job Task");
+        CreateTenantWebServiceColumn(TenantWebService.RECORDID,14,DATABASE::"Job Task");
+        CreateTenantWebServiceColumn(TenantWebService.RECORDID,15,DATABASE::"Job Task");
+        CreateTenantWebServiceColumn(TenantWebService.RECORDID,17,DATABASE::"Job Task");
+        CreateTenantWebServiceColumn(TenantWebService.RECORDID,16,DATABASE::"Job Task");
+        CreateTenantWebServiceColumn(TenantWebService.RECORDID,64,DATABASE::"Job Task");
+        CreateTenantWebServiceColumn(TenantWebService.RECORDID,65,DATABASE::"Job Task");
+
+        CreateTenantWebServiceOData(TenantWebService);
+      END;
+
+      CLEAR(TenantWebService);
+
+      TenantWebService.INIT;
+      TenantWebService."Object Type" := TenantWebService."Object Type"::Page;
+      TenantWebService."Object ID" := PAGE::"Job Planning Lines";
+      TenantWebService."Service Name" := COPYSTR(JobPlanningLinesTxt,1,MAXSTRLEN(TenantWebService."Service Name"));
+      TenantWebService.Published := TRUE;
+
+      IF TenantWebService.INSERT THEN BEGIN
+        CreateTenantWebServiceColumn(TenantWebService.RECORDID,1000,DATABASE::"Job Planning Line");
+        CreateTenantWebServiceColumn(TenantWebService.RECORDID,3,DATABASE::"Job Planning Line");
+        CreateTenantWebServiceColumn(TenantWebService.RECORDID,5794,DATABASE::"Job Planning Line");
+        CreateTenantWebServiceColumn(TenantWebService.RECORDID,4,DATABASE::"Job Planning Line");
+        CreateTenantWebServiceColumn(TenantWebService.RECORDID,5,DATABASE::"Job Planning Line");
+        CreateTenantWebServiceColumn(TenantWebService.RECORDID,7,DATABASE::"Job Planning Line");
+        CreateTenantWebServiceColumn(TenantWebService.RECORDID,8,DATABASE::"Job Planning Line");
+        CreateTenantWebServiceColumn(TenantWebService.RECORDID,9,DATABASE::"Job Planning Line");
+        CreateTenantWebServiceColumn(TenantWebService.RECORDID,1060,DATABASE::"Job Planning Line");
+        CreateTenantWebServiceColumn(TenantWebService.RECORDID,1002,DATABASE::"Job Planning Line");
+        CreateTenantWebServiceColumn(TenantWebService.RECORDID,1003,DATABASE::"Job Planning Line");
+        CreateTenantWebServiceColumn(TenantWebService.RECORDID,1004,DATABASE::"Job Planning Line");
+        CreateTenantWebServiceColumn(TenantWebService.RECORDID,1006,DATABASE::"Job Planning Line");
+        CreateTenantWebServiceColumn(TenantWebService.RECORDID,1071,DATABASE::"Job Planning Line");
+        CreateTenantWebServiceColumn(TenantWebService.RECORDID,1035,DATABASE::"Job Planning Line");
+
+        CreateTenantWebServiceOData(TenantWebService);
+      END;
+
+      CreatePowerBICustomerList;
+      CreatePowerBIVendorList;
+      CreatePowerBIJobList;
+      CreatePowerBISalesList;
+      CreatePowerBIPurchaseList;
+      CreatePowerBIItemPurchaseList;
+      CreatePowerBIItemSalesList;
+      CreatePowerBIGLAmountList;
+      CreatePowerBIGLBudgetedAmountList;
+      CreatePowerBITopCustOverviewWebService;
+      CreatePowerBISalesHdrCustWebService;
+      CreatePowerBICustItemLedgEntWebService;
+      CreatePowerBICustLedgerEntriesWebService;
+      CreatePowerBIVendorLedgerEntriesWebService;
+      CreatePowerBIPurchaseHdrVendorWebService;
+      CreatePowerBIVendItemLedgEntWebService;
+      CreatePowerBIAgedAccPayableWebService;
+      CreatePowerBIAgedAccReceivableWebService;
+      CreatePowerBIAgedInventoryChartWebService;
+      CreatePowerBIJobActBudgPriceWebService;
+      CreatePowerBIJobProfitabilityWebService;
+      CreatePowerBIJobActBudgCostWebService;
+      CreatePowerBISalesPipelineWebService;
+      CreatePowerBITop5OpportunitiesWebService;
+      CreatePowerBIWorkDateCalcWebService;
+      CreatePowerBIReportLabelsWebService;
+      WebServiceManagement.CreateTenantWebService(
+        TenantWebService."Object Type"::Page,PAGE::"Chart of Accounts",PowerBIChartOfAccountsTxt,TRUE);
+    END;
+
+    LOCAL PROCEDURE CreateTenantWebServiceOData@1035(TenantWebService@1000 : Record 2000000168);
+    VAR
+      TenantWebServiceOData@1003 : Record 6710;
+      ODataUtility@1002 : Codeunit 6710;
+      SelectText@1001 : Text;
+    BEGIN
+      TenantWebServiceOData.INIT;
+      TenantWebServiceOData.TenantWebServiceID := TenantWebService.RECORDID;
+      IF NOT TenantWebServiceOData.INSERT THEN;
+      ODataUtility.GenerateSelectText(TenantWebService."Service Name",TenantWebService."Object Type",SelectText);
+      TenantWebServiceOData.SetOdataSelectClause(SelectText);
+      TenantWebServiceOData.MODIFY;
+    END;
+
+    LOCAL PROCEDURE CreatePowerBICustomerList@1087();
+    VAR
+      TenantWebService@1001 : Record 2000000168;
+      Customer@1000 : Record 18;
+      DetailedCustLedgEntry@1003 : Record 379;
+      WebServiceManagement@1002 : Codeunit 9750;
+    BEGIN
+      WebServiceManagement.CreateTenantWebService(
+        TenantWebService."Object Type"::Query,QUERY::"Power BI Customer List",PowerBICustomerListTxt,TRUE);
+
+      TenantWebService.GET(TenantWebService."Object Type"::Query,PowerBICustomerListTxt);
+      CreateTenantWebServiceColumn(TenantWebService.RECORDID,Customer.FIELDNO("No."),DATABASE::Customer);
+      CreateTenantWebServiceColumn(TenantWebService.RECORDID,Customer.FIELDNO(Name),DATABASE::Customer);
+      CreateTenantWebServiceColumn(TenantWebService.RECORDID,Customer.FIELDNO("Credit Limit (LCY)"),DATABASE::Customer);
+      CreateTenantWebServiceColumn(TenantWebService.RECORDID,Customer.FIELDNO("Balance Due"),DATABASE::Customer);
+      CreateTenantWebServiceColumn(TenantWebService.RECORDID,DetailedCustLedgEntry.FIELDNO("Posting Date"),
+        DATABASE::"Detailed Cust. Ledg. Entry");
+      CreateTenantWebServiceColumn(TenantWebService.RECORDID,DetailedCustLedgEntry.FIELDNO("Cust. Ledger Entry No."),
+        DATABASE::"Detailed Cust. Ledg. Entry");
+      CreateTenantWebServiceColumn(TenantWebService.RECORDID,DetailedCustLedgEntry.FIELDNO(Amount),
+        DATABASE::"Detailed Cust. Ledg. Entry");
+      CreateTenantWebServiceColumn(TenantWebService.RECORDID,DetailedCustLedgEntry.FIELDNO("Amount (LCY)"),
+        DATABASE::"Detailed Cust. Ledg. Entry");
+      CreateTenantWebServiceColumn(TenantWebService.RECORDID,DetailedCustLedgEntry.FIELDNO("Transaction No."),
+        DATABASE::"Detailed Cust. Ledg. Entry");
+      CreateTenantWebServiceColumn(TenantWebService.RECORDID,DetailedCustLedgEntry.FIELDNO("Entry No."),
+        DATABASE::"Detailed Cust. Ledg. Entry");
+
+      CreateTenantWebServiceOData(TenantWebService);
+    END;
+
+    LOCAL PROCEDURE CreatePowerBIVendorList@1086();
+    VAR
+      Vendor@1000 : Record 23;
+      DetailedVendorLedgEntry@1001 : Record 380;
+      TenantWebService@1003 : Record 2000000168;
+      WebServiceManagement@1002 : Codeunit 9750;
+    BEGIN
+      WebServiceManagement.CreateTenantWebService(
+        TenantWebService."Object Type"::Query,QUERY::"Power BI Vendor List",PowerBIVendorListTxt,TRUE);
+
+      TenantWebService.GET(TenantWebService."Object Type"::Query,PowerBIVendorListTxt);
+      CreateTenantWebServiceColumn(TenantWebService.RECORDID,Vendor.FIELDNO("No."),DATABASE::Vendor);
+      CreateTenantWebServiceColumn(TenantWebService.RECORDID,Vendor.FIELDNO(Name),DATABASE::Vendor);
+      CreateTenantWebServiceColumn(TenantWebService.RECORDID,Vendor.FIELDNO("Balance Due"),DATABASE::Vendor);
+      CreateTenantWebServiceColumn(TenantWebService.RECORDID,DetailedVendorLedgEntry.FIELDNO("Posting Date"),
+        DATABASE::"Detailed Vendor Ledg. Entry");
+      CreateTenantWebServiceColumn(TenantWebService.RECORDID,DetailedVendorLedgEntry.FIELDNO("Applied Vend. Ledger Entry No."),
+        DATABASE::"Detailed Vendor Ledg. Entry");
+      CreateTenantWebServiceColumn(TenantWebService.RECORDID,DetailedVendorLedgEntry.FIELDNO(Amount),
+        DATABASE::"Detailed Vendor Ledg. Entry");
+      CreateTenantWebServiceColumn(TenantWebService.RECORDID,DetailedVendorLedgEntry.FIELDNO("Amount (LCY)"),
+        DATABASE::"Detailed Vendor Ledg. Entry");
+      CreateTenantWebServiceColumn(TenantWebService.RECORDID,DetailedVendorLedgEntry.FIELDNO("Transaction No."),
+        DATABASE::"Detailed Vendor Ledg. Entry");
+      CreateTenantWebServiceColumn(TenantWebService.RECORDID,DetailedVendorLedgEntry.FIELDNO("Entry No."),
+        DATABASE::"Detailed Vendor Ledg. Entry");
+      CreateTenantWebServiceColumn(TenantWebService.RECORDID,DetailedVendorLedgEntry.FIELDNO("Remaining Pmt. Disc. Possible"),
+        DATABASE::"Detailed Vendor Ledg. Entry");
+
+      CreateTenantWebServiceOData(TenantWebService);
+    END;
+
+    LOCAL PROCEDURE CreatePowerBIJobList@1085();
+    VAR
+      JobLedgerEntry@1000 : Record 169;
+      TenantWebService@1001 : Record 2000000168;
+      Job@1002 : Record 167;
+      WebServiceManagement@1003 : Codeunit 9750;
+    BEGIN
+      WebServiceManagement.CreateTenantWebService(
+        TenantWebService."Object Type"::Query,QUERY::"Power BI Jobs List",PowerBIJobsListTxt,TRUE);
+
+      TenantWebService.GET(TenantWebService."Object Type"::Query,PowerBIJobsListTxt);
+      CreateTenantWebServiceColumn(TenantWebService.RECORDID,Job.FIELDNO("No."),DATABASE::Job);
+      CreateTenantWebServiceColumn(TenantWebService.RECORDID,Job.FIELDNO("Search Description"),DATABASE::Job);
+      CreateTenantWebServiceColumn(TenantWebService.RECORDID,Job.FIELDNO(Complete),DATABASE::Job);
+      CreateTenantWebServiceColumn(TenantWebService.RECORDID,Job.FIELDNO(Status),DATABASE::Job);
+      CreateTenantWebServiceColumn(TenantWebService.RECORDID,JobLedgerEntry.FIELDNO("Posting Date"),DATABASE::"Job Ledger Entry");
+      CreateTenantWebServiceColumn(TenantWebService.RECORDID,JobLedgerEntry.FIELDNO("Total Cost"),DATABASE::"Job Ledger Entry");
+      CreateTenantWebServiceColumn(TenantWebService.RECORDID,JobLedgerEntry.FIELDNO("Entry No."),DATABASE::"Job Ledger Entry");
+      CreateTenantWebServiceColumn(TenantWebService.RECORDID,JobLedgerEntry.FIELDNO("Entry Type"),DATABASE::"Job Ledger Entry");
+
+      CreateTenantWebServiceOData(TenantWebService);
+    END;
+
+    LOCAL PROCEDURE CreatePowerBISalesList@1084();
+    VAR
+      SalesHeader@1001 : Record 36;
+      SalesLine@1003 : Record 37;
+      TenantWebService@1002 : Record 2000000168;
+      WebServiceManagement@1000 : Codeunit 9750;
+    BEGIN
+      WebServiceManagement.CreateTenantWebService(
+        TenantWebService."Object Type"::Query,QUERY::"Power BI Sales List",PowerBISalesListTxt,TRUE);
+
+      TenantWebService.GET(TenantWebService."Object Type"::Query,PowerBISalesListTxt);
+      CreateTenantWebServiceColumn(TenantWebService.RECORDID,SalesHeader.FIELDNO("No."),DATABASE::"Sales Header");
+      CreateTenantWebServiceColumn(TenantWebService.RECORDID,SalesHeader.FIELDNO("Requested Delivery Date"),
+        DATABASE::"Sales Header");
+      CreateTenantWebServiceColumn(TenantWebService.RECORDID,SalesHeader.FIELDNO("Shipment Date"),DATABASE::"Sales Header");
+      CreateTenantWebServiceColumn(TenantWebService.RECORDID,SalesHeader.FIELDNO("Due Date"),DATABASE::"Sales Header");
+      CreateTenantWebServiceColumn(TenantWebService.RECORDID,SalesLine.FIELDNO(Quantity),DATABASE::"Sales Line");
+      CreateTenantWebServiceColumn(TenantWebService.RECORDID,SalesLine.FIELDNO(Amount),DATABASE::"Sales Line");
+      CreateTenantWebServiceColumn(TenantWebService.RECORDID,SalesLine.FIELDNO("No."),DATABASE::"Sales Line");
+      CreateTenantWebServiceColumn(TenantWebService.RECORDID,SalesLine.FIELDNO(Description),DATABASE::"Sales Line");
+
+      CreateTenantWebServiceOData(TenantWebService);
+    END;
+
+    LOCAL PROCEDURE CreatePowerBIPurchaseList@1083();
+    VAR
+      PurchaseHeader@1001 : Record 38;
+      PurchaseLine@1002 : Record 39;
+      TenantWebService@1003 : Record 2000000168;
+      WebServiceManagement@1000 : Codeunit 9750;
+    BEGIN
+      WebServiceManagement.CreateTenantWebService(
+        TenantWebService."Object Type"::Query,QUERY::"Power BI Purchase List",PowerBIPurchaseListTxt,TRUE);
+
+      TenantWebService.GET(TenantWebService."Object Type"::Query,PowerBIPurchaseListTxt);
+      CreateTenantWebServiceColumn(TenantWebService.RECORDID,PurchaseHeader.FIELDNO("No."),DATABASE::"Purchase Header");
+      CreateTenantWebServiceColumn(TenantWebService.RECORDID,PurchaseHeader.FIELDNO("Order Date"),DATABASE::"Purchase Header");
+      CreateTenantWebServiceColumn(TenantWebService.RECORDID,PurchaseHeader.FIELDNO("Expected Receipt Date"),
+        DATABASE::"Purchase Header");
+      CreateTenantWebServiceColumn(TenantWebService.RECORDID,PurchaseHeader.FIELDNO("Due Date"),DATABASE::"Purchase Header");
+      CreateTenantWebServiceColumn(TenantWebService.RECORDID,PurchaseHeader.FIELDNO("Pmt. Discount Date"),
+        DATABASE::"Purchase Header");
+      CreateTenantWebServiceColumn(TenantWebService.RECORDID,PurchaseLine.FIELDNO(Quantity),DATABASE::"Purchase Line");
+      CreateTenantWebServiceColumn(TenantWebService.RECORDID,PurchaseLine.FIELDNO(Amount),DATABASE::"Purchase Line");
+      CreateTenantWebServiceColumn(TenantWebService.RECORDID,PurchaseLine.FIELDNO("No."),DATABASE::"Purchase Line");
+      CreateTenantWebServiceColumn(TenantWebService.RECORDID,PurchaseLine.FIELDNO(Description),DATABASE::"Purchase Line");
+
+      CreateTenantWebServiceOData(TenantWebService);
+    END;
+
+    LOCAL PROCEDURE CreatePowerBIItemPurchaseList@1082();
+    VAR
+      Item@1001 : Record 27;
+      ItemLedgerEntry@1002 : Record 32;
+      TenantWebService@1003 : Record 2000000168;
+      WebServiceManagement@1000 : Codeunit 9750;
+    BEGIN
+      WebServiceManagement.CreateTenantWebService(
+        TenantWebService."Object Type"::Query,QUERY::"Power BI Item Purchase List",PowerBIItemPurchasesListTxt,TRUE);
+
+      TenantWebService.GET(TenantWebService."Object Type"::Query,PowerBIItemPurchasesListTxt);
+      CreateTenantWebServiceColumn(TenantWebService.RECORDID,Item.FIELDNO("No."),DATABASE::Item);
+      CreateTenantWebServiceColumn(TenantWebService.RECORDID,Item.FIELDNO("Search Description"),DATABASE::Item);
+      CreateTenantWebServiceColumn(TenantWebService.RECORDID,ItemLedgerEntry.FIELDNO("Posting Date"),
+        DATABASE::"Item Ledger Entry");
+      CreateTenantWebServiceColumn(TenantWebService.RECORDID,ItemLedgerEntry.FIELDNO("Invoiced Quantity"),
+        DATABASE::"Item Ledger Entry");
+      CreateTenantWebServiceColumn(TenantWebService.RECORDID,ItemLedgerEntry.FIELDNO("Entry No."),DATABASE::"Item Ledger Entry");
+
+      CreateTenantWebServiceOData(TenantWebService);
+    END;
+
+    LOCAL PROCEDURE CreatePowerBIItemSalesList@1081();
+    VAR
+      Item@1001 : Record 27;
+      ValueEntry@1002 : Record 5802;
+      TenantWebService@1003 : Record 2000000168;
+      WebServiceManagement@1000 : Codeunit 9750;
+    BEGIN
+      WebServiceManagement.CreateTenantWebService(
+        TenantWebService."Object Type"::Query,QUERY::"Power BI Item Sales List",PowerBIItemSalesListTxt,TRUE);
+
+      TenantWebService.GET(TenantWebService."Object Type"::Query,PowerBIItemSalesListTxt);
+      CreateTenantWebServiceColumn(TenantWebService.RECORDID,Item.FIELDNO("No."),DATABASE::Item);
+      CreateTenantWebServiceColumn(TenantWebService.RECORDID,Item.FIELDNO("Search Description"),DATABASE::Item);
+      CreateTenantWebServiceColumn(TenantWebService.RECORDID,ValueEntry.FIELDNO("Posting Date"),DATABASE::"Value Entry");
+      CreateTenantWebServiceColumn(TenantWebService.RECORDID,ValueEntry.FIELDNO("Invoiced Quantity"),DATABASE::"Value Entry");
+      CreateTenantWebServiceColumn(TenantWebService.RECORDID,ValueEntry.FIELDNO("Entry No."),DATABASE::"Value Entry");
+
+      CreateTenantWebServiceOData(TenantWebService);
+    END;
+
+    LOCAL PROCEDURE CreatePowerBIGLAmountList@1080();
+    VAR
+      GLAccount@1002 : Record 15;
+      GLEntry@1003 : Record 17;
+      TenantWebService@1001 : Record 2000000168;
+      WebServiceManagement@1000 : Codeunit 9750;
+    BEGIN
+      WebServiceManagement.CreateTenantWebService(
+        TenantWebService."Object Type"::Query,QUERY::"Power BI GL Amount List",PowerBIGLAmountListTxt,TRUE);
+
+      TenantWebService.GET(TenantWebService."Object Type"::Query,PowerBIGLAmountListTxt);
+      CreateTenantWebServiceColumn(TenantWebService.RECORDID,GLAccount.FIELDNO("No."),DATABASE::"G/L Account");
+      CreateTenantWebServiceColumn(TenantWebService.RECORDID,GLAccount.FIELDNO(Name),DATABASE::"G/L Account");
+      CreateTenantWebServiceColumn(TenantWebService.RECORDID,GLAccount.FIELDNO("Account Type"),DATABASE::"G/L Account");
+      CreateTenantWebServiceColumn(TenantWebService.RECORDID,GLAccount.FIELDNO("Debit/Credit"),DATABASE::"G/L Account");
+      CreateTenantWebServiceColumn(TenantWebService.RECORDID,GLEntry.FIELDNO("Posting Date"),DATABASE::"G/L Entry");
+      CreateTenantWebServiceColumn(TenantWebService.RECORDID,GLEntry.FIELDNO(Amount),DATABASE::"G/L Entry");
+      CreateTenantWebServiceColumn(TenantWebService.RECORDID,GLEntry.FIELDNO("Entry No."),DATABASE::"G/L Entry");
+
+      CreateTenantWebServiceOData(TenantWebService);
+    END;
+
+    LOCAL PROCEDURE CreatePowerBIGLBudgetedAmountList@1079();
+    VAR
+      GLAccount@1003 : Record 15;
+      GLBudgetEntry@1002 : Record 96;
+      TenantWebService@1001 : Record 2000000168;
+      WebServiceManagement@1000 : Codeunit 9750;
+    BEGIN
+      WebServiceManagement.CreateTenantWebService(
+        TenantWebService."Object Type"::Query,QUERY::"Power BI GL Budgeted Amount",PowerBIGLBudgetedAmountListTxt,TRUE);
+
+      TenantWebService.GET(TenantWebService."Object Type"::Query,PowerBIGLBudgetedAmountListTxt);
+      CreateTenantWebServiceColumn(TenantWebService.RECORDID,GLAccount.FIELDNO("No."),DATABASE::"G/L Account");
+      CreateTenantWebServiceColumn(TenantWebService.RECORDID,GLAccount.FIELDNO(Name),DATABASE::"G/L Account");
+      CreateTenantWebServiceColumn(TenantWebService.RECORDID,GLAccount.FIELDNO("Account Type"),DATABASE::"G/L Account");
+      CreateTenantWebServiceColumn(TenantWebService.RECORDID,GLAccount.FIELDNO("Debit/Credit"),DATABASE::"G/L Account");
+      CreateTenantWebServiceColumn(TenantWebService.RECORDID,GLBudgetEntry.FIELDNO(Date),DATABASE::"G/L Budget Entry");
+      CreateTenantWebServiceColumn(TenantWebService.RECORDID,GLBudgetEntry.FIELDNO(Amount),DATABASE::"G/L Budget Entry");
+
+      CreateTenantWebServiceOData(TenantWebService);
+    END;
+
+    LOCAL PROCEDURE CreatePowerBITopCustOverviewWebService@8();
+    VAR
+      CustLedgerEntry@1003 : Record 21;
+      Customer@1002 : Record 18;
+      TenantWebService@1001 : Record 2000000168;
+      WebServiceManagement@1000 : Codeunit 9750;
+      metaData@1004 : DotNet "'Microsoft.Dynamics.Nav.Client.BusinessChart.Model, Version=13.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35'.Microsoft.Dynamics.Nav.Client.BusinessChart.QueryMetadataReader";
+    BEGIN
+      WebServiceManagement.CreateTenantWebService(
+        TenantWebService."Object Type"::Query,QUERY::"Power BI Top Cust. Overview",PowerBITopCustOverviewTxt,TRUE);
+
+      TenantWebService.GET(TenantWebService."Object Type"::Query,PowerBITopCustOverviewTxt);
+      ODataUtility.GetTenantWebServiceMetadata(TenantWebService,metaData);
+      ODataUtility.CreateTenantWebServiceColumnForQuery(TenantWebService.RECORDID,CustLedgerEntry.FIELDNO("Entry No."),
+        DATABASE::"Cust. Ledger Entry",metaData);
+      ODataUtility.CreateTenantWebServiceColumnForQuery(TenantWebService.RECORDID,CustLedgerEntry.FIELDNO("Posting Date"),
+        DATABASE::"Cust. Ledger Entry",metaData);
+      ODataUtility.CreateTenantWebServiceColumnForQuery(TenantWebService.RECORDID,CustLedgerEntry.FIELDNO("Customer No."),
+        DATABASE::"Cust. Ledger Entry",metaData);
+      ODataUtility.CreateTenantWebServiceColumnForQuery(TenantWebService.RECORDID,CustLedgerEntry.FIELDNO("Sales (LCY)"),
+        DATABASE::"Cust. Ledger Entry",metaData);
+      ODataUtility.CreateTenantWebServiceColumnForQuery(TenantWebService.RECORDID,Customer.FIELDNO(Name),
+        DATABASE::Customer,metaData);
+
+      CreateTenantWebServiceOData(TenantWebService);
+    END;
+
+    LOCAL PROCEDURE CreatePowerBISalesHdrCustWebService@15();
+    VAR
+      SalesHeader@1003 : Record 36;
+      SalesLine@1002 : Record 37;
+      Item@1005 : Record 27;
+      Customer@1006 : Record 18;
+      TenantWebService@1001 : Record 2000000168;
+      WebServiceManagement@1000 : Codeunit 9750;
+      metaData@1004 : DotNet "'Microsoft.Dynamics.Nav.Client.BusinessChart.Model, Version=13.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35'.Microsoft.Dynamics.Nav.Client.BusinessChart.QueryMetadataReader";
+    BEGIN
+      WebServiceManagement.CreateTenantWebService(
+        TenantWebService."Object Type"::Query,QUERY::"Power BI Sales Hdr. Cust.",PowerBISalesHdrCustTxt,TRUE);
+
+      TenantWebService.GET(TenantWebService."Object Type"::Query,PowerBISalesHdrCustTxt);
+      ODataUtility.GetTenantWebServiceMetadata(TenantWebService,metaData);
+      ODataUtility.CreateTenantWebServiceColumnForQuery(TenantWebService.RECORDID,SalesHeader.FIELDNO("No."),DATABASE::"Sales Header",
+        metaData);
+      ODataUtility.CreateTenantWebServiceColumnForQuery(TenantWebService.RECORDID,SalesLine.FIELDNO("No."),DATABASE::"Sales Line",
+        metaData);
+      ODataUtility.CreateTenantWebServiceColumnForQuery(TenantWebService.RECORDID,SalesLine.FIELDNO(Quantity),
+        DATABASE::"Sales Line",metaData);
+      ODataUtility.CreateTenantWebServiceColumnForQuery(TenantWebService.RECORDID,SalesLine.FIELDNO("Qty. Invoiced (Base)"),
+        DATABASE::"Sales Line",metaData);
+      ODataUtility.CreateTenantWebServiceColumnForQuery(TenantWebService.RECORDID,SalesLine.FIELDNO("Qty. Shipped (Base)"),
+        DATABASE::"Sales Line",metaData);
+      ODataUtility.CreateTenantWebServiceColumnForQuery(TenantWebService.RECORDID,Item.FIELDNO("Base Unit of Measure"),
+        DATABASE::Item,metaData);
+      ODataUtility.CreateTenantWebServiceColumnForQuery(TenantWebService.RECORDID,Item.FIELDNO(Description),
+        DATABASE::Item,metaData);
+      ODataUtility.CreateTenantWebServiceColumnForQuery(TenantWebService.RECORDID,Item.FIELDNO(Inventory),
+        DATABASE::Item,metaData);
+      ODataUtility.CreateTenantWebServiceColumnForQuery(TenantWebService.RECORDID,Item.FIELDNO("Unit Price"),
+        DATABASE::Item,metaData);
+      ODataUtility.CreateTenantWebServiceColumnForQuery(TenantWebService.RECORDID,Customer.FIELDNO("No."),
+        DATABASE::Customer,metaData);
+      ODataUtility.CreateTenantWebServiceColumnForQuery(TenantWebService.RECORDID,Customer.FIELDNO(Name),
+        DATABASE::Customer,metaData);
+      ODataUtility.CreateTenantWebServiceColumnForQuery(TenantWebService.RECORDID,Customer.FIELDNO(Balance),
+        DATABASE::Customer,metaData);
+      ODataUtility.CreateTenantWebServiceColumnForQuery(TenantWebService.RECORDID,Customer.FIELDNO("Country/Region Code"),
+        DATABASE::Customer,metaData);
+
+      CreateTenantWebServiceOData(TenantWebService);
+    END;
+
+    LOCAL PROCEDURE CreatePowerBICustItemLedgEntWebService@22();
+    VAR
+      Customer@1003 : Record 18;
+      ItemLedgerEntry@1002 : Record 32;
+      TenantWebService@1001 : Record 2000000168;
+      WebServiceManagement@1000 : Codeunit 9750;
+      metaData@1004 : DotNet "'Microsoft.Dynamics.Nav.Client.BusinessChart.Model, Version=13.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35'.Microsoft.Dynamics.Nav.Client.BusinessChart.QueryMetadataReader";
+    BEGIN
+      WebServiceManagement.CreateTenantWebService(
+        TenantWebService."Object Type"::Query,QUERY::"Power BI Cust. Item Ledg. Ent.",PowerBICustItemLedgEntTxt,TRUE);
+
+      TenantWebService.GET(TenantWebService."Object Type"::Query,PowerBICustItemLedgEntTxt);
+      ODataUtility.GetTenantWebServiceMetadata(TenantWebService,metaData);
+      ODataUtility.CreateTenantWebServiceColumnForQuery(TenantWebService.RECORDID,Customer.FIELDNO("No."),
+        DATABASE::Customer,metaData);
+      ODataUtility.CreateTenantWebServiceColumnForQuery(TenantWebService.RECORDID,ItemLedgerEntry.FIELDNO("Item No."),
+        DATABASE::"Item Ledger Entry",metaData);
+      ODataUtility.CreateTenantWebServiceColumnForQuery(TenantWebService.RECORDID,ItemLedgerEntry.FIELDNO(Quantity),
+        DATABASE::"Item Ledger Entry",metaData);
+
+      CreateTenantWebServiceOData(TenantWebService);
+    END;
+
+    LOCAL PROCEDURE CreatePowerBICustLedgerEntriesWebService@27();
+    VAR
+      CustLedgerEntry@1003 : Record 21;
+      TenantWebService@1001 : Record 2000000168;
+      WebServiceManagement@1000 : Codeunit 9750;
+      metaData@1004 : DotNet "'Microsoft.Dynamics.Nav.Client.BusinessChart.Model, Version=13.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35'.Microsoft.Dynamics.Nav.Client.BusinessChart.QueryMetadataReader";
+    BEGIN
+      WebServiceManagement.CreateTenantWebService(
+        TenantWebService."Object Type"::Query,QUERY::"Power BI Cust. Ledger Entries",PowerBICustLedgerEntriesTxt,TRUE);
+
+      TenantWebService.GET(TenantWebService."Object Type"::Query,PowerBICustLedgerEntriesTxt);
+      ODataUtility.GetTenantWebServiceMetadata(TenantWebService,metaData);
+      ODataUtility.CreateTenantWebServiceColumnForQuery(TenantWebService.RECORDID,CustLedgerEntry.FIELDNO("Entry No."),
+        DATABASE::"Cust. Ledger Entry",metaData);
+      ODataUtility.CreateTenantWebServiceColumnForQuery(TenantWebService.RECORDID,CustLedgerEntry.FIELDNO("Due Date"),
+        DATABASE::"Cust. Ledger Entry",metaData);
+      ODataUtility.CreateTenantWebServiceColumnForQuery(TenantWebService.RECORDID,CustLedgerEntry.FIELDNO("Remaining Amt. (LCY)"),
+        DATABASE::"Cust. Ledger Entry",metaData);
+      ODataUtility.CreateTenantWebServiceColumnForQuery(TenantWebService.RECORDID,CustLedgerEntry.FIELDNO(Open),
+        DATABASE::"Cust. Ledger Entry",metaData);
+      ODataUtility.CreateTenantWebServiceColumnForQuery(TenantWebService.RECORDID,CustLedgerEntry.FIELDNO("Customer Posting Group"),
+        DATABASE::"Cust. Ledger Entry",metaData);
+      ODataUtility.CreateTenantWebServiceColumnForQuery(TenantWebService.RECORDID,CustLedgerEntry.FIELDNO("Sales (LCY)"),
+        DATABASE::"Cust. Ledger Entry",metaData);
+      ODataUtility.CreateTenantWebServiceColumnForQuery(TenantWebService.RECORDID,CustLedgerEntry.FIELDNO("Posting Date"),
+        DATABASE::"Cust. Ledger Entry",metaData);
+
+      CreateTenantWebServiceOData(TenantWebService);
+    END;
+
+    LOCAL PROCEDURE CreatePowerBIVendorLedgerEntriesWebService@30();
+    VAR
+      VendorLedgerEntry@1003 : Record 25;
+      TenantWebService@1001 : Record 2000000168;
+      WebServiceManagement@1000 : Codeunit 9750;
+      metaData@1004 : DotNet "'Microsoft.Dynamics.Nav.Client.BusinessChart.Model, Version=13.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35'.Microsoft.Dynamics.Nav.Client.BusinessChart.QueryMetadataReader";
+    BEGIN
+      WebServiceManagement.CreateTenantWebService(
+        TenantWebService."Object Type"::Query,QUERY::"Power BI Vendor Ledger Entries",PowerBIVendorLedgerEntriesTxt,TRUE);
+
+      TenantWebService.GET(TenantWebService."Object Type"::Query,PowerBIVendorLedgerEntriesTxt);
+      ODataUtility.GetTenantWebServiceMetadata(TenantWebService,metaData);
+      ODataUtility.CreateTenantWebServiceColumnForQuery(TenantWebService.RECORDID,VendorLedgerEntry.FIELDNO("Entry No."),
+        DATABASE::"Vendor Ledger Entry",metaData);
+      ODataUtility.CreateTenantWebServiceColumnForQuery(TenantWebService.RECORDID,VendorLedgerEntry.FIELDNO("Due Date"),
+        DATABASE::"Vendor Ledger Entry",metaData);
+      ODataUtility.CreateTenantWebServiceColumnForQuery(TenantWebService.RECORDID,VendorLedgerEntry.FIELDNO("Remaining Amt. (LCY)"),
+        DATABASE::"Vendor Ledger Entry",metaData);
+      ODataUtility.CreateTenantWebServiceColumnForQuery(TenantWebService.RECORDID,VendorLedgerEntry.FIELDNO(Open),
+        DATABASE::"Vendor Ledger Entry",metaData);
+
+      CreateTenantWebServiceOData(TenantWebService);
+    END;
+
+    LOCAL PROCEDURE CreatePowerBIPurchaseHdrVendorWebService@9();
+    VAR
+      PurchaseHeader@1003 : Record 38;
+      PurchaseLine@1002 : Record 39;
+      Item@1005 : Record 27;
+      Vendor@1006 : Record 23;
+      TenantWebService@1001 : Record 2000000168;
+      WebServiceManagement@1000 : Codeunit 9750;
+      metaData@1004 : DotNet "'Microsoft.Dynamics.Nav.Client.BusinessChart.Model, Version=13.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35'.Microsoft.Dynamics.Nav.Client.BusinessChart.QueryMetadataReader";
+    BEGIN
+      WebServiceManagement.CreateTenantWebService(
+        TenantWebService."Object Type"::Query,QUERY::"Power BI Purchase Hdr. Vendor",PowerBIPurchaseHdrVendorTxt,TRUE);
+
+      TenantWebService.GET(TenantWebService."Object Type"::Query,PowerBIPurchaseHdrVendorTxt);
+      ODataUtility.GetTenantWebServiceMetadata(TenantWebService,metaData);
+      ODataUtility.CreateTenantWebServiceColumnForQuery(TenantWebService.RECORDID,PurchaseHeader.FIELDNO("No."),
+        DATABASE::"Purchase Header",metaData);
+      ODataUtility.CreateTenantWebServiceColumnForQuery(TenantWebService.RECORDID,PurchaseLine.FIELDNO("No."),
+        DATABASE::"Purchase Line",metaData);
+      ODataUtility.CreateTenantWebServiceColumnForQuery(TenantWebService.RECORDID,PurchaseLine.FIELDNO(Quantity),
+        DATABASE::"Purchase Line",metaData);
+      ODataUtility.CreateTenantWebServiceColumnForQuery(TenantWebService.RECORDID,Item.FIELDNO("Base Unit of Measure"),
+        DATABASE::Item,metaData);
+      ODataUtility.CreateTenantWebServiceColumnForQuery(TenantWebService.RECORDID,Item.FIELDNO(Description),
+        DATABASE::Item,metaData);
+      ODataUtility.CreateTenantWebServiceColumnForQuery(TenantWebService.RECORDID,Item.FIELDNO(Inventory),
+        DATABASE::Item,metaData);
+      ODataUtility.CreateTenantWebServiceColumnForQuery(TenantWebService.RECORDID,Item.FIELDNO("Qty. on Purch. Order"),
+        DATABASE::Item,metaData);
+      ODataUtility.CreateTenantWebServiceColumnForQuery(TenantWebService.RECORDID,Item.FIELDNO("Unit Price"),
+        DATABASE::Item,metaData);
+      ODataUtility.CreateTenantWebServiceColumnForQuery(TenantWebService.RECORDID,Vendor.FIELDNO("No."),
+        DATABASE::Vendor,metaData);
+      ODataUtility.CreateTenantWebServiceColumnForQuery(TenantWebService.RECORDID,Vendor.FIELDNO(Name),
+        DATABASE::Vendor,metaData);
+      ODataUtility.CreateTenantWebServiceColumnForQuery(TenantWebService.RECORDID,Vendor.FIELDNO(Balance),
+        DATABASE::Vendor,metaData);
+      ODataUtility.CreateTenantWebServiceColumnForQuery(TenantWebService.RECORDID,Vendor.FIELDNO("Country/Region Code"),
+        DATABASE::Vendor,metaData);
+
+      CreateTenantWebServiceOData(TenantWebService);
+    END;
+
+    LOCAL PROCEDURE CreatePowerBIVendItemLedgEntWebService@10();
+    VAR
+      Vendor@1003 : Record 23;
+      ItemLedgerEntry@1002 : Record 32;
+      TenantWebService@1001 : Record 2000000168;
+      WebServiceManagement@1000 : Codeunit 9750;
+      metaData@1004 : DotNet "'Microsoft.Dynamics.Nav.Client.BusinessChart.Model, Version=13.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35'.Microsoft.Dynamics.Nav.Client.BusinessChart.QueryMetadataReader";
+    BEGIN
+      WebServiceManagement.CreateTenantWebService(
+        TenantWebService."Object Type"::Query,QUERY::"Power BI Vend. Item Ledg. Ent.",PowerBIVendItemLedgEntTxt,TRUE);
+
+      TenantWebService.GET(TenantWebService."Object Type"::Query,PowerBIVendItemLedgEntTxt);
+      ODataUtility.GetTenantWebServiceMetadata(TenantWebService,metaData);
+      ODataUtility.CreateTenantWebServiceColumnForQuery(TenantWebService.RECORDID,Vendor.FIELDNO("No."),
+        DATABASE::Vendor,metaData);
+      ODataUtility.CreateTenantWebServiceColumnForQuery(TenantWebService.RECORDID,ItemLedgerEntry.FIELDNO("Item No."),
+        DATABASE::"Item Ledger Entry",metaData);
+      ODataUtility.CreateTenantWebServiceColumnForQuery(TenantWebService.RECORDID,ItemLedgerEntry.FIELDNO(Quantity),
+        DATABASE::"Item Ledger Entry",metaData);
+
+      CreateTenantWebServiceOData(TenantWebService);
+    END;
+
+    LOCAL PROCEDURE CreatePowerBIAgedAccPayableWebService@42();
+    VAR
+      PowerBIChartBuffer@1002 : Record 6305;
+      TenantWebService@1000 : Record 2000000168;
+      WebServiceManagement@1001 : Codeunit 9750;
+    BEGIN
+      WebServiceManagement.CreateTenantWebService(
+        TenantWebService."Object Type"::Page,PAGE::"PBI Aged Acc. Payable",PowerBIAgedAccPayableTxt,TRUE);
+
+      TenantWebService.GET(TenantWebService."Object Type"::Page,PowerBIAgedAccPayableTxt);
+      ODataUtility.CreateTenantWebServiceColumnForPage(TenantWebService.RECORDID,PowerBIChartBuffer.FIELDNO(ID),
+        DATABASE::"Power BI Chart Buffer");
+      ODataUtility.CreateTenantWebServiceColumnForPage(TenantWebService.RECORDID,PowerBIChartBuffer.FIELDNO(Value),
+        DATABASE::"Power BI Chart Buffer");
+      ODataUtility.CreateTenantWebServiceColumnForPage(TenantWebService.RECORDID,PowerBIChartBuffer.FIELDNO("Period Type"),
+        DATABASE::"Power BI Chart Buffer");
+      ODataUtility.CreateTenantWebServiceColumnForPage(TenantWebService.RECORDID,PowerBIChartBuffer.FIELDNO(Date),
+        DATABASE::"Power BI Chart Buffer");
+      ODataUtility.CreateTenantWebServiceColumnForPage(TenantWebService.RECORDID,PowerBIChartBuffer.FIELDNO("Date Sorting"),
+        DATABASE::"Power BI Chart Buffer");
+      ODataUtility.CreateTenantWebServiceColumnForPage(TenantWebService.RECORDID,PowerBIChartBuffer.FIELDNO("Period Type Sorting"),
+        DATABASE::"Power BI Chart Buffer");
+
+      CreateTenantWebServiceOData(TenantWebService);
+    END;
+
+    LOCAL PROCEDURE CreatePowerBIAgedAccReceivableWebService@46();
+    VAR
+      PowerBIChartBuffer@1002 : Record 6305;
+      TenantWebService@1000 : Record 2000000168;
+      WebServiceManagement@1001 : Codeunit 9750;
+    BEGIN
+      WebServiceManagement.CreateTenantWebService(
+        TenantWebService."Object Type"::Page,PAGE::"PBI Aged Acc. Receivable",PowerBIAgedAccReceivableTxt,TRUE);
+
+      TenantWebService.GET(TenantWebService."Object Type"::Page,PowerBIAgedAccReceivableTxt);
+      ODataUtility.CreateTenantWebServiceColumnForPage(TenantWebService.RECORDID,PowerBIChartBuffer.FIELDNO(ID),
+        DATABASE::"Power BI Chart Buffer");
+      ODataUtility.CreateTenantWebServiceColumnForPage(TenantWebService.RECORDID,PowerBIChartBuffer.FIELDNO(Value),
+        DATABASE::"Power BI Chart Buffer");
+      ODataUtility.CreateTenantWebServiceColumnForPage(TenantWebService.RECORDID,PowerBIChartBuffer.FIELDNO(Date),
+        DATABASE::"Power BI Chart Buffer");
+      ODataUtility.CreateTenantWebServiceColumnForPage(TenantWebService.RECORDID,PowerBIChartBuffer.FIELDNO("Date Sorting"),
+        DATABASE::"Power BI Chart Buffer");
+      ODataUtility.CreateTenantWebServiceColumnForPage(TenantWebService.RECORDID,PowerBIChartBuffer.FIELDNO("Period Type"),
+        DATABASE::"Power BI Chart Buffer");
+      ODataUtility.CreateTenantWebServiceColumnForPage(TenantWebService.RECORDID,PowerBIChartBuffer.FIELDNO("Period Type Sorting"),
+        DATABASE::"Power BI Chart Buffer");
+      ODataUtility.CreateTenantWebServiceColumnForPage(TenantWebService.RECORDID,PowerBIChartBuffer.FIELDNO("Measure Name"),
+        DATABASE::"Power BI Chart Buffer");
+
+      CreateTenantWebServiceOData(TenantWebService);
+    END;
+
+    LOCAL PROCEDURE CreatePowerBIAgedInventoryChartWebService@49();
+    VAR
+      PowerBIChartBuffer@1002 : Record 6305;
+      TenantWebService@1000 : Record 2000000168;
+      WebServiceManagement@1001 : Codeunit 9750;
+    BEGIN
+      WebServiceManagement.CreateTenantWebService(
+        TenantWebService."Object Type"::Page,PAGE::"PBI Aged Inventory Chart",PowerBIAgedInventoryChartTxt,TRUE);
+
+      TenantWebService.GET(TenantWebService."Object Type"::Page,PowerBIAgedInventoryChartTxt);
+      ODataUtility.CreateTenantWebServiceColumnForPage(TenantWebService.RECORDID,PowerBIChartBuffer.FIELDNO(ID),
+        DATABASE::"Power BI Chart Buffer");
+      ODataUtility.CreateTenantWebServiceColumnForPage(TenantWebService.RECORDID,PowerBIChartBuffer.FIELDNO(Value),
+        DATABASE::"Power BI Chart Buffer");
+      ODataUtility.CreateTenantWebServiceColumnForPage(TenantWebService.RECORDID,PowerBIChartBuffer.FIELDNO(Date),
+        DATABASE::"Power BI Chart Buffer");
+      ODataUtility.CreateTenantWebServiceColumnForPage(TenantWebService.RECORDID,PowerBIChartBuffer.FIELDNO("Period Type"),
+        DATABASE::"Power BI Chart Buffer");
+      ODataUtility.CreateTenantWebServiceColumnForPage(TenantWebService.RECORDID,PowerBIChartBuffer.FIELDNO("Period Type Sorting"),
+        DATABASE::"Power BI Chart Buffer");
+
+      CreateTenantWebServiceOData(TenantWebService);
+    END;
+
+    LOCAL PROCEDURE CreatePowerBIJobActBudgPriceWebService@56();
+    VAR
+      PowerBIChartBuffer@1002 : Record 6305;
+      TenantWebService@1000 : Record 2000000168;
+      WebServiceManagement@1001 : Codeunit 9750;
+    BEGIN
+      WebServiceManagement.CreateTenantWebService(
+        TenantWebService."Object Type"::Page,PAGE::"PBI Job Act. v. Budg. Price",PowerBIJobActBudgPriceTxt,TRUE);
+
+      TenantWebService.GET(TenantWebService."Object Type"::Page,PowerBIJobActBudgPriceTxt);
+      ODataUtility.CreateTenantWebServiceColumnForPage(TenantWebService.RECORDID,PowerBIChartBuffer.FIELDNO("Measure No."),
+        DATABASE::"Power BI Chart Buffer");
+      ODataUtility.CreateTenantWebServiceColumnForPage(TenantWebService.RECORDID,PowerBIChartBuffer.FIELDNO("Measure Name"),
+        DATABASE::"Power BI Chart Buffer");
+      ODataUtility.CreateTenantWebServiceColumnForPage(TenantWebService.RECORDID,PowerBIChartBuffer.FIELDNO(Value),
+        DATABASE::"Power BI Chart Buffer");
+
+      CreateTenantWebServiceOData(TenantWebService);
+    END;
+
+    LOCAL PROCEDURE CreatePowerBIJobProfitabilityWebService@59();
+    VAR
+      PowerBIChartBuffer@1002 : Record 6305;
+      TenantWebService@1000 : Record 2000000168;
+      WebServiceManagement@1001 : Codeunit 9750;
+    BEGIN
+      WebServiceManagement.CreateTenantWebService(
+        TenantWebService."Object Type"::Page,PAGE::"PBI Job Profitability",PowerBIJobProfitabilityTxt,TRUE);
+
+      TenantWebService.GET(TenantWebService."Object Type"::Page,PowerBIJobProfitabilityTxt);
+      ODataUtility.CreateTenantWebServiceColumnForPage(TenantWebService.RECORDID,PowerBIChartBuffer.FIELDNO("Measure No."),
+        DATABASE::"Power BI Chart Buffer");
+      ODataUtility.CreateTenantWebServiceColumnForPage(TenantWebService.RECORDID,PowerBIChartBuffer.FIELDNO("Measure Name"),
+        DATABASE::"Power BI Chart Buffer");
+      ODataUtility.CreateTenantWebServiceColumnForPage(TenantWebService.RECORDID,PowerBIChartBuffer.FIELDNO(Value),
+        DATABASE::"Power BI Chart Buffer");
+
+      CreateTenantWebServiceOData(TenantWebService);
+    END;
+
+    LOCAL PROCEDURE CreatePowerBIJobActBudgCostWebService@61();
+    VAR
+      PowerBIChartBuffer@1002 : Record 6305;
+      TenantWebService@1000 : Record 2000000168;
+      WebServiceManagement@1001 : Codeunit 9750;
+    BEGIN
+      WebServiceManagement.CreateTenantWebService(
+        TenantWebService."Object Type"::Page,PAGE::"PBI Job Act. v. Budg. Cost",PowerBIJobActBudgCostTxt,TRUE);
+
+      TenantWebService.GET(TenantWebService."Object Type"::Page,PowerBIJobActBudgCostTxt);
+      ODataUtility.CreateTenantWebServiceColumnForPage(TenantWebService.RECORDID,PowerBIChartBuffer.FIELDNO("Measure No."),
+        DATABASE::"Power BI Chart Buffer");
+      ODataUtility.CreateTenantWebServiceColumnForPage(TenantWebService.RECORDID,PowerBIChartBuffer.FIELDNO("Measure Name"),
+        DATABASE::"Power BI Chart Buffer");
+      ODataUtility.CreateTenantWebServiceColumnForPage(TenantWebService.RECORDID,PowerBIChartBuffer.FIELDNO(Value),
+        DATABASE::"Power BI Chart Buffer");
+
+      CreateTenantWebServiceOData(TenantWebService);
+    END;
+
+    LOCAL PROCEDURE CreatePowerBISalesPipelineWebService@63();
+    VAR
+      PowerBIChartBuffer@1002 : Record 6305;
+      TenantWebService@1000 : Record 2000000168;
+      WebServiceManagement@1001 : Codeunit 9750;
+    BEGIN
+      WebServiceManagement.CreateTenantWebService(
+        TenantWebService."Object Type"::Page,PAGE::"PBI Sales Pipeline",PowerBISalesPipelineTxt,TRUE);
+
+      TenantWebService.GET(TenantWebService."Object Type"::Page,PowerBISalesPipelineTxt);
+      ODataUtility.CreateTenantWebServiceColumnForPage(TenantWebService.RECORDID,PowerBIChartBuffer.FIELDNO(ID),
+        DATABASE::"Power BI Chart Buffer");
+      ODataUtility.CreateTenantWebServiceColumnForPage(TenantWebService.RECORDID,PowerBIChartBuffer.FIELDNO("Row No."),
+        DATABASE::"Power BI Chart Buffer");
+      ODataUtility.CreateTenantWebServiceColumnForPage(TenantWebService.RECORDID,PowerBIChartBuffer.FIELDNO(Value),
+        DATABASE::"Power BI Chart Buffer");
+      ODataUtility.CreateTenantWebServiceColumnForPage(TenantWebService.RECORDID,PowerBIChartBuffer.FIELDNO("Measure Name"),
+        DATABASE::"Power BI Chart Buffer");
+      ODataUtility.CreateTenantWebServiceColumnForPage(TenantWebService.RECORDID,PowerBIChartBuffer.FIELDNO("Measure No."),
+        DATABASE::"Power BI Chart Buffer");
+
+      CreateTenantWebServiceOData(TenantWebService);
+    END;
+
+    LOCAL PROCEDURE CreatePowerBITop5OpportunitiesWebService@66();
+    VAR
+      PowerBIChartBuffer@1002 : Record 6305;
+      TenantWebService@1000 : Record 2000000168;
+      WebServiceManagement@1001 : Codeunit 9750;
+    BEGIN
+      WebServiceManagement.CreateTenantWebService(
+        TenantWebService."Object Type"::Page,PAGE::"PBI Top 5 Opportunities",PowerBITop5OpportunitiesTxt,TRUE);
+
+      TenantWebService.GET(TenantWebService."Object Type"::Page,PowerBITop5OpportunitiesTxt);
+      ODataUtility.CreateTenantWebServiceColumnForPage(TenantWebService.RECORDID,PowerBIChartBuffer.FIELDNO(ID),
+        DATABASE::"Power BI Chart Buffer");
+      ODataUtility.CreateTenantWebServiceColumnForPage(TenantWebService.RECORDID,PowerBIChartBuffer.FIELDNO(Value),
+        DATABASE::"Power BI Chart Buffer");
+      ODataUtility.CreateTenantWebServiceColumnForPage(TenantWebService.RECORDID,PowerBIChartBuffer.FIELDNO("Measure Name"),
+        DATABASE::"Power BI Chart Buffer");
+      ODataUtility.CreateTenantWebServiceColumnForPage(TenantWebService.RECORDID,PowerBIChartBuffer.FIELDNO("Measure No."),
+        DATABASE::"Power BI Chart Buffer");
+
+      CreateTenantWebServiceOData(TenantWebService);
+    END;
+
+    LOCAL PROCEDURE CreatePowerBIWorkDateCalcWebService@73();
+    VAR
+      TenantWebService@1000 : Record 2000000168;
+      WebServiceManagement@1001 : Codeunit 9750;
+    BEGIN
+      WebServiceManagement.CreateTenantWebService(
+        TenantWebService."Object Type"::Page,PAGE::"PBI WorkDate Calc.",PowerBIWorkDateCalcTxt,TRUE);
+
+      TenantWebService.GET(TenantWebService."Object Type"::Page,PowerBIWorkDateCalcTxt);
+
+      CreateTenantWebServiceOData(TenantWebService);
+    END;
+
+    LOCAL PROCEDURE CreatePowerBIReportLabelsWebService@12();
+    VAR
+      PowerBIReportLabels@1000 : Record 6306;
+      TenantWebService@1001 : Record 2000000168;
+      WebServiceManagement@1002 : Codeunit 9750;
+    BEGIN
+      WebServiceManagement.CreateTenantWebService(
+        TenantWebService."Object Type"::Page,PAGE::"PBI Report Labels",PowerBIReportLabelsTxt,TRUE);
+
+      TenantWebService.GET(TenantWebService."Object Type"::Page,PowerBIReportLabelsTxt);
+      ODataUtility.CreateTenantWebServiceColumnForPage(TenantWebService.RECORDID,PowerBIReportLabels.FIELDNO("Label ID"),
+        DATABASE::"Power BI Report Labels");
+      ODataUtility.CreateTenantWebServiceColumnForPage(TenantWebService.RECORDID,PowerBIReportLabels.FIELDNO("Text Value"),
+        DATABASE::"Power BI Report Labels");
+
+      CreateTenantWebServiceOData(TenantWebService);
+    END;
+
+    [UpgradePerCompany]
+    PROCEDURE UpdateContactDuplicateSearchString@1111();
+    VAR
+      ContDuplicateSearchString@1000 : Record 5086;
+    BEGIN
+      ContDuplicateSearchString.DELETEALL;
+    END;
+
+    [UpgradePerCompany]
+    PROCEDURE UpgradeBankAccReconciliation@7();
+    VAR
+      BankAccReconciliation@1000 : Record 273;
+    BEGIN
+      BankAccReconciliation.MODIFYALL("Copy VAT Setup to Jnl. Line",TRUE,TRUE);
+    END;
+
+    LOCAL PROCEDURE UpdateItemCategoryCodeOnLinesRecords@1(VAR UPGItem@1000 : Record 104067;VAR ItemCategory@1001 : Record 5722);
+    VAR
+      SalesShipmentLine@1002 : Record 111;
+      SalesInvoiceLine@1003 : Record 113;
+      SalesCrMemoLine@1004 : Record 115;
+      PurchRcptLine@1005 : Record 121;
+      PurchInvLine@1006 : Record 123;
+      RequisitionLine@1007 : Record 246;
+      ItemLedgerEntry@1008 : Record 32;
+      SalesLine@1009 : Record 37;
+      PurchaseLine@1010 : Record 39;
+      SalesLineArchive@1011 : Record 5108;
+      PurchaseLineArchive@1012 : Record 5110;
+      TransferLine@1013 : Record 5741;
+      TransferShipmentLine@1014 : Record 5745;
+      TransferReceiptLine@1015 : Record 5747;
+      ServiceLine@1016 : Record 5902;
+      ServiceShipmentLine@1017 : Record 5991;
+      ServiceInvoiceLine@1018 : Record 5993;
+      ServiceCrMemoLine@1019 : Record 5995;
+      ReturnShipmentLine@1020 : Record 6651;
+      ReturnReceiptLine@1021 : Record 6661;
+      StandardItemJournalLine@1022 : Record 753;
+      ItemJournalLine@1023 : Record 83;
+      SalesTaxInvoiceLine@1024 : Record 28072;
+      PurchTaxCrMemoLine@1025 : Record 28078;
+      SalesTaxCrMemoLine@1026 : Record 28074;
+      PurchTaxInvLine@1027 : Record 28076;
+    BEGIN
+      SalesShipmentLine.SETRANGE(Type,SalesShipmentLine.Type::Item);
+      SalesShipmentLine.SETRANGE("No.",UPGItem."No.");
+      SalesShipmentLine.MODIFYALL("Item Category Code",ItemCategory.Code);
+
+      SalesInvoiceLine.SETRANGE(Type,SalesInvoiceLine.Type::Item);
+      SalesInvoiceLine.SETRANGE("No.",UPGItem."No.");
+      SalesInvoiceLine.MODIFYALL("Item Category Code",ItemCategory.Code);
+
+      SalesCrMemoLine.SETRANGE(Type,SalesCrMemoLine.Type::Item);
+      SalesCrMemoLine.SETRANGE("No.",UPGItem."No.");
+      SalesCrMemoLine.MODIFYALL("Item Category Code",ItemCategory.Code);
+
+      PurchRcptLine.SETRANGE(Type,PurchRcptLine.Type::Item);
+      PurchRcptLine.SETRANGE("No.",UPGItem."No.");
+      PurchRcptLine.MODIFYALL("Item Category Code",ItemCategory.Code);
+
+      PurchInvLine.SETRANGE(Type,PurchInvLine.Type::Item);
+      PurchInvLine.SETRANGE("No.",UPGItem."No.");
+      PurchInvLine.MODIFYALL("Item Category Code",ItemCategory.Code);
+
+      RequisitionLine.SETRANGE(Type,RequisitionLine.Type::Item);
+      RequisitionLine.SETRANGE("No.",UPGItem."No.");
+      RequisitionLine.MODIFYALL("Item Category Code",ItemCategory.Code);
+
+      ItemLedgerEntry.SETRANGE("Item No.",UPGItem."No.");
+      ItemLedgerEntry.MODIFYALL("Item Category Code",ItemCategory.Code);
+
+      SalesLine.SETRANGE(Type,SalesLine.Type::Item);
+      SalesLine.SETRANGE("No.",UPGItem."No.");
+      SalesLine.MODIFYALL("Item Category Code",ItemCategory.Code);
+
+      PurchaseLine.SETRANGE(Type,PurchaseLine.Type::Item);
+      PurchaseLine.SETRANGE("No.",UPGItem."No.");
+      PurchaseLine.MODIFYALL("Item Category Code",ItemCategory.Code);
+
+      SalesLineArchive.SETRANGE(Type,SalesLineArchive.Type::Item);
+      SalesLineArchive.SETRANGE("No.",UPGItem."No.");
+      SalesLineArchive.MODIFYALL("Item Category Code",ItemCategory.Code);
+
+      PurchaseLineArchive.SETRANGE(Type,PurchaseLineArchive.Type::Item);
+      PurchaseLineArchive.SETRANGE("No.",UPGItem."No.");
+      PurchaseLineArchive.MODIFYALL("Item Category Code",ItemCategory.Code);
+
+      TransferLine.SETRANGE("Item No.",UPGItem."No.");
+      TransferLine.MODIFYALL("Item Category Code",ItemCategory.Code);
+
+      TransferShipmentLine.SETRANGE("Item No.",UPGItem."No.");
+      TransferShipmentLine.MODIFYALL("Item Category Code",ItemCategory.Code);
+
+      TransferReceiptLine.SETRANGE("Item No.",UPGItem."No.");
+      TransferReceiptLine.MODIFYALL("Item Category Code",ItemCategory.Code);
+
+      ServiceLine.SETRANGE(Type,ServiceLine.Type::Item);
+      ServiceLine.SETRANGE("No.",UPGItem."No.");
+      ServiceLine.MODIFYALL("Item Category Code",ItemCategory.Code);
+
+      ServiceShipmentLine.SETRANGE(Type,ServiceShipmentLine.Type::Item);
+      ServiceShipmentLine.SETRANGE("No.",UPGItem."No.");
+      ServiceShipmentLine.MODIFYALL("Item Category Code",ItemCategory.Code);
+
+      ServiceInvoiceLine.SETRANGE(Type,ServiceInvoiceLine.Type::Item);
+      ServiceInvoiceLine.SETRANGE("No.",UPGItem."No.");
+      ServiceInvoiceLine.MODIFYALL("Item Category Code",ItemCategory.Code);
+
+      ServiceCrMemoLine.SETRANGE(Type,ServiceCrMemoLine.Type::Item);
+      ServiceCrMemoLine.SETRANGE("No.",UPGItem."No.");
+      ServiceCrMemoLine.MODIFYALL("Item Category Code",ItemCategory.Code);
+
+      ReturnShipmentLine.SETRANGE(Type,ReturnShipmentLine.Type::Item);
+      ReturnShipmentLine.SETRANGE("No.",UPGItem."No.");
+      ReturnShipmentLine.MODIFYALL("Item Category Code",ItemCategory.Code);
+
+      ReturnReceiptLine.SETRANGE(Type,ReturnReceiptLine.Type::Item);
+      ReturnReceiptLine.SETRANGE("No.",UPGItem."No.");
+      ReturnReceiptLine.MODIFYALL("Item Category Code",ItemCategory.Code);
+
+      StandardItemJournalLine.SETRANGE("Item No.",UPGItem."No.");
+      StandardItemJournalLine.MODIFYALL("Item Category Code",ItemCategory.Code);
+
+      ItemJournalLine.SETRANGE("Item No.",UPGItem."No.");
+      ItemJournalLine.MODIFYALL("Item Category Code",ItemCategory.Code);
+
+      SalesTaxInvoiceLine.SETRANGE(Type,SalesTaxInvoiceLine.Type::Item);
+      SalesTaxInvoiceLine.SETRANGE("No.",UPGItem."No.");
+      SalesTaxInvoiceLine.MODIFYALL("Item Category Code",ItemCategory.Code);
+
+      PurchTaxCrMemoLine.SETRANGE(Type,PurchTaxCrMemoLine.Type::Item);
+      PurchTaxCrMemoLine.SETRANGE("No.",UPGItem."No.");
+      PurchTaxCrMemoLine.MODIFYALL("Item Category Code",ItemCategory.Code);
+
+      SalesTaxCrMemoLine.SETRANGE(Type,SalesTaxCrMemoLine.Type::Item);
+      SalesTaxCrMemoLine.SETRANGE("No.",UPGItem."No.");
+      SalesTaxCrMemoLine.MODIFYALL("Item Category Code",ItemCategory.Code);
+
+      PurchTaxInvLine.SETRANGE(Type,PurchTaxInvLine.Type::Item);
+      PurchTaxInvLine.SETRANGE("No.",UPGItem."No.");
+      PurchTaxInvLine.MODIFYALL("Item Category Code",ItemCategory.Code);
+    END;
+
+    [UpgradePerDatabase]
+    PROCEDURE CreateWorkflowWebhookWebServices@2();
+    VAR
+      TenantWebService@1002 : Record 2000000168;
+      WebServiceManagement@1001 : Codeunit 9750;
+    BEGIN
+      WebServiceManagement.CreateTenantWebService(
+        TenantWebService."Object Type"::Page,PAGE::"Sales Document Entity",'salesDocuments',TRUE);
+      WebServiceManagement.CreateTenantWebService(
+        TenantWebService."Object Type"::Page,PAGE::"Sales Document Line Entity",'salesDocumentLines',TRUE);
+      WebServiceManagement.CreateTenantWebService(
+        TenantWebService."Object Type"::Page,PAGE::"Purchase Document Entity",'purchaseDocuments',TRUE);
+      WebServiceManagement.CreateTenantWebService(
+        TenantWebService."Object Type"::Page,PAGE::"Purchase Document Line Entity",'purchaseDocumentLines',TRUE);
+      WebServiceManagement.CreateTenantWebService(
+        TenantWebService."Object Type"::Page,PAGE::"Sales Document Entity",'workflowSalesDocuments',TRUE);
+      WebServiceManagement.CreateTenantWebService(
+        TenantWebService."Object Type"::Page,PAGE::"Sales Document Line Entity",'workflowSalesDocumentLines',TRUE);
+      WebServiceManagement.CreateTenantWebService(
+        TenantWebService."Object Type"::Page,PAGE::"Purchase Document Entity",'workflowPurchaseDocuments',TRUE);
+      WebServiceManagement.CreateTenantWebService(
+        TenantWebService."Object Type"::Page,PAGE::"Purchase Document Line Entity",'workflowPurchaseDocumentLines',TRUE);
+      WebServiceManagement.CreateTenantWebService(
+        TenantWebService."Object Type"::Page,PAGE::"Gen. Journal Batch Entity",'workflowGenJournalBatches',TRUE);
+      WebServiceManagement.CreateTenantWebService(
+        TenantWebService."Object Type"::Page,PAGE::"Gen. Journal Line Entity",'workflowGenJournalLines',TRUE);
+      WebServiceManagement.CreateTenantWebService(
+        TenantWebService."Object Type"::Page,PAGE::"Workflow - Customer Entity",'workflowCustomers',TRUE);
+      WebServiceManagement.CreateTenantWebService(
+        TenantWebService."Object Type"::Page,PAGE::"Workflow - Item Entity",'workflowItems',TRUE);
+      WebServiceManagement.CreateTenantWebService(
+        TenantWebService."Object Type"::Page,PAGE::"Workflow - Vendor Entity",'workflowVendors',TRUE);
+      WebServiceManagement.CreateTenantWebService(
+        TenantWebService."Object Type"::Page,PAGE::"Workflow Webhook Subscriptions",'workflowWebhookSubscriptions',TRUE);
+      WebServiceManagement.CreateTenantWebService(
+        TenantWebService."Object Type"::Codeunit,CODEUNIT::"Workflow Webhook Subscription",'WorkflowActionResponse',TRUE);
+    END;
+
+    [UpgradePerDatabase]
+    PROCEDURE CreateExcelTemplateWebServices@3();
+    BEGIN
+      CreateExcelTemplateWebService(ExcelTemplateIncomeStatementTxt,PAGE::"Income Statement Entity");
+      CreateExcelTemplateWebService(ExcelTemplateBalanceSheetTxt,PAGE::"Balance Sheet Entity");
+      CreateExcelTemplateWebService(ExcelTemplateTrialBalanceTxt,PAGE::"Trial Balance Entity");
+      CreateExcelTemplateWebService(ExcelTemplateRetainedEarningsStatementTxt ,PAGE::"Retained Earnings Entity");
+      CreateExcelTemplateWebService(ExcelTemplateCashFlowStatementTxt ,PAGE::"Cash Flow Statement Entity");
+      CreateExcelTemplateWebService(ExcelTemplateAgedAccountsReceivableTxt ,PAGE::"Aged AR Entity");
+      CreateExcelTemplateWebService(ExcelTemplateAgedAccountsPayableTxt ,PAGE::"Aged AP Entity");
+      CreateExcelTemplateWebService(ExcelTemplateCompanyInformationTxt ,PAGE::ExcelTemplateCompanyInfo);
+    END;
+
+    LOCAL PROCEDURE CreateExcelTemplateWebService@4(ObjectName@1001 : Text;PageID@1000 : Integer);
+    VAR
+      TenantWebService@1003 : Record 2000000168;
+    BEGIN
+      CLEAR(TenantWebService);
+      WebServiceManagement.CreateTenantWebService(TenantWebService."Object Type"::Page,PageID,ObjectName,TRUE);
+    END;
+
+    [UpgradePerCompany]
+    PROCEDURE UpgradeReportSelections@5();
+    VAR
+      ReportSelections@1000 : Record 77;
+    BEGIN
+      WITH ReportSelections DO BEGIN
+        IF NOT GET(Usage::"Pro Forma S. Invoice",'1') THEN
+          InsertReportSelections(Usage::"Pro Forma S. Invoice",'1',REPORT::"Standard Sales - Pro Forma Inv");
+        IF NOT GET(Usage::"S. Arch. Blanket Order",'1') THEN
+          InsertReportSelections(Usage::"S. Arch. Blanket Order",'1',REPORT::"Archived Blanket Sales Order");
+        IF NOT GET(Usage::"P. Arch. Blanket Order",'1') THEN
+          InsertReportSelections(Usage::"P. Arch. Blanket Order",'1',REPORT::"Archived Blanket Purch. Order");
+      END;
+    END;
+
+    LOCAL PROCEDURE InsertReportSelections@6(ReportUsage@1000 : Integer;ReportSequence@1001 : Code[10];ReportID@1002 : Integer);
+    VAR
+      ReportSelections@1003 : Record 77;
+    BEGIN
+      WITH ReportSelections DO BEGIN
+        INIT;
+        Usage := ReportUsage;
+        Sequence := ReportSequence;
+        "Report ID" := ReportID;
+        INSERT;
+      END;
+    END;
+
+    [UpgradePerCompany]
+    PROCEDURE UpgradeSalesSetup@75();
+    VAR
+      SalesReceivablesSetup@1000 : Record 311;
+    BEGIN
+      IF SalesReceivablesSetup.GET THEN BEGIN
+        SalesReceivablesSetup."Archive Orders" := SalesReceivablesSetup."Archive Quotes and Orders";
+        IF SalesReceivablesSetup."Archive Quotes and Orders" THEN
+          SalesReceivablesSetup."Archive Quotes" := SalesReceivablesSetup."Archive Quotes"::Always;
+        SalesReceivablesSetup.MODIFY;
+      END;
+    END;
+
+    [UpgradePerCompany]
+    PROCEDURE UpgradePurchSetup@76();
+    VAR
+      PurchPayablesSetup@1000 : Record 312;
+    BEGIN
+      IF PurchPayablesSetup.GET THEN BEGIN
+        PurchPayablesSetup."Archive Orders" := PurchPayablesSetup."Archive Quotes and Orders";
+        IF PurchPayablesSetup."Archive Quotes and Orders" THEN
+          PurchPayablesSetup."Archive Quotes" := PurchPayablesSetup."Archive Quotes"::Always;
+        PurchPayablesSetup.MODIFY;
+      END;
+    END;
+
+    [UpgradePerCompany]
+    PROCEDURE UpdateVATRateChangeSetup@11();
+    VAR
+      VATRateChangeSetup@1000 : Record 550;
+    BEGIN
+      IF VATRateChangeSetup.GET THEN BEGIN
+        VATRateChangeSetup."Ignore Status on Service Docs." := TRUE;
+        VATRateChangeSetup.MODIFY;
+      END;
+    END;
+
+    [UpgradePerCompany]
+    PROCEDURE UpdateIntrastatContactSetup@77();
+    VAR
+      UPGCompanyInformation@1000 : Record 104079;
+      IntrastatSetup@1001 : Record 247;
+    BEGIN
+      IF UPGCompanyInformation.GET THEN
+        IF UPGCompanyInformation."Intrastat Contact No." <> '' THEN BEGIN
+          IF NOT IntrastatSetup.GET THEN
+            IntrastatSetup.INSERT;
+          IntrastatSetup."Intrastat Contact Type" := UPGCompanyInformation."Intrastat Contact Type";
+          IntrastatSetup."Intrastat Contact No." := UPGCompanyInformation."Intrastat Contact No.";
+          IntrastatSetup.MODIFY;
+        END;
+    END;
+
+    [UpgradePerCompany]
+    PROCEDURE UpdateCheckFieldSetup@101010();
+    VAR
+      IntrastatJnlLine@1001 : Record 263;
+    BEGIN
+      InsertCheckFieldSetup(IntrastatJnlLine.FIELDNO("Tariff No."));
+      InsertCheckFieldSetup(IntrastatJnlLine.FIELDNO("Country/Region Code"));
+      InsertCheckFieldSetup(IntrastatJnlLine.FIELDNO("Transaction Type"));
+      InsertCheckFieldSetup(IntrastatJnlLine.FIELDNO("Total Weight"));
+      InsertCheckFieldSetup(IntrastatJnlLine.FIELDNO(Quantity));
+    END;
+
+    LOCAL PROCEDURE InsertCheckFieldSetup@2323(FieldNumber@1001 : Integer);
+    VAR
+      IntrastatCheckFieldSetup@1002 : Record 8451;
+    BEGIN
+      WITH IntrastatCheckFieldSetup DO BEGIN
+        INIT;
+        VALIDATE("Field No.",FieldNumber);
+        INSERT;
+      END;
+    END;
+
+    LOCAL PROCEDURE UpdateBlockedFields@201();
+    VAR
+      Item@1000 : Record 27;
+    BEGIN
+      IF Item.FINDSET(TRUE,FALSE) THEN
+        REPEAT
+          Item.VALIDATE("Sales Blocked",FALSE);
+          Item.VALIDATE("Purchasing Blocked",FALSE);
+          IF Item.MODIFY THEN;
+        UNTIL Item.NEXT = 0;
+    END;
+
+    [UpgradePerCompany]
+    PROCEDURE UpdateItemCategoryReferencedIds@16();
+    VAR
+      Item@1000 : Record 27;
+    BEGIN
+      IF Item.FINDSET(TRUE) THEN
+        REPEAT
+          Item.UpdateItemCategoryId;
+          IF Item.MODIFY THEN ;
+        UNTIL Item.NEXT = 0;
+    END;
+
+    BEGIN
+    END.
+  }
+}
+
+OBJECT Codeunit 104060 Report Layout Upgrades
+{
+  OBJECT-PROPERTIES
+  {
+    Date=19/09/18;
+    Time=12:00:00 PM;
+    Version List=UPGTK13.00.00;
+  }
+  PROPERTIES
+  {
+    Subtype=Upgrade;
+    OnRun=BEGIN
+          END;
+
+  }
+  CODE
+  {
+
+    LOCAL PROCEDURE UpgradeReportLayout@2(TestMode@1004 : Boolean);
+    VAR
+      ReportUpgradeSet@1001 : DotNet "'Microsoft.Dynamics.Nav.Types.Report, Version=13.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35'.Microsoft.Dynamics.Nav.Types.Report.IReportUpgradeSet";
+      ReportUpgradeCollection@1000 : DotNet "'Microsoft.Dynamics.Nav.DocumentReport, Version=13.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35'.Microsoft.Dynamics.Nav.DocumentReport.ReportUpgradeCollection";
+      DeleteAction@1002 : DotNet "'Microsoft.Dynamics.Nav.Types.Report, Version=13.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35'.Microsoft.Dynamics.Nav.Types.Report.ReportChangeOptions+DeleteAction";
+      DocumentReportMgt@1003 : Codeunit 9651;
+    BEGIN
+      ReportUpgradeCollection := ReportUpgradeCollection.ReportUpgradeCollection;
+
+      // AddIn API definition
+      // ReportUpgrade.ChangeDataItem(string fromName, string toName, string fromParent, string toParent);
+      // ReportUpgradeSet.ChangeField(string fromName, string toName, string fromParent, string toParent);
+      // ReportUpgradeSet.DeleteField(string name, string parentPath, DeleteAction action, string substExpression);
+      // ReportUpgradeSet.DeleteDataItem(string name, string parentPath, DeleteAction action)
+      // [IReportChangeLogCollection Upgrade :=] ReportUpgradeSet.Upgrade(System.IO.Stream sourceDocument, System.IO.Stream targetDocument)
+
+      // Calculate the changeset for all layouts in the current database
+      DocumentReportMgt.CalculateUpgradeChangeSet(ReportUpgradeCollection);
+
+      // Sample code snippet for applying a "breaking" change to a report design. The sample uses report 1306.
+      // ReportUpgradeSet := ReportUpgradeCollection.AddReport(1306);
+      // IF NOT ISNULL(ReportUpgradeSet) THEN BEGIN
+      //   // Delete the default text stored in the control (replace with empty string)
+      //   ReportUpgradeSet.DeleteField('CompanyIBAN','/Header',DeleteAction.DeleteContent, '');
+      //   // Delete the field and replace the control with the specified text tag.
+      //   ReportUpgradeSet.DeleteField('UnitPrice','/Header/Line',DeleteAction.ReplaceWithText,'#Delete(DeleteItem2)');
+      //   // Delete the control containing the field.
+      //   ReportUpgradeSet.DeleteField('Quantity_ShipmentLine','/Header/Line/ShipmentLine',DeleteAction.DeleteNode, '');
+      //   ReportUpgradeSet.DeleteField('Quantity_ShipmentLine_Lbl','/Header/Line/ShipmentLine',DeleteAction.DeleteNode, '');
+      //   // Rename a data field
+      //   ReportUpgradeSet.ChangeField('VariantCode_AssemblyLine','VariantCode_NewAssemblyLine','/Header/Line/AssemblyLine',
+      //                                '/Header/Line/AssemblyLine');
+      // END;
+
+      // Apply the upgrade steps to the reports
+      DocumentReportMgt.ApplyUpgradeToReports(ReportUpgradeCollection,TestMode);
+    END;
+
+    [CheckPrecondition]
+    PROCEDURE TestLayoutUpgrade@1();
+    BEGIN
+      UpgradeReportLayout(TRUE);
+    END;
+
+    [UpgradePerDatabase]
+    PROCEDURE RunLayoutUpgrade@3();
+    BEGIN
+      UpgradeReportLayout(FALSE);
+    END;
+
+    BEGIN
+    {
+      Upgrade report layouts to match current design / dataset definition
+      1) Collect detectable changes between current metadata and the layouts stored in the custom layout table.
+      2) Enable user specific updates per report id (rename or delete items)
+    }
+    END.
+  }
+}
+
+OBJECT Codeunit 104080 UPG Sales Document Icons
+{
+  OBJECT-PROPERTIES
+  {
+    Date=19/09/18;
+    Time=12:00:00 PM;
+    Version List=UPGTK13.00.00;
+  }
+  PROPERTIES
+  {
+    OnRun=VAR
+            Type@1000 : Integer;
+          BEGIN
+            FOR Type := 0 TO 5 DO
+              InsertIcon(Type);
+          END;
+
+  }
+  CODE
+  {
+
+    PROCEDURE InsertIcon@2(Type@1000 : Integer);
+    VAR
+      SalesDocumentIcon@1001 : Record 2100;
+      Convert@1004 : DotNet "'mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089'.System.Convert";
+      ByteArray@1005 : DotNet "'mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089'.System.Array";
+      MemoryStream@1007 : DotNet "'mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089'.System.IO.MemoryStream";
+      IconData@1002 : Text;
+    BEGIN
+      IF SalesDocumentIcon.GET(Type) THEN
+        SalesDocumentIcon.DELETE(TRUE);
+
+      IconData := GetIconData(Type);
+      IF IconData = '' THEN
+        EXIT;
+
+      SalesDocumentIcon.INIT;
+      SalesDocumentIcon.Type := Type;
+
+      ByteArray := Convert.FromBase64String(IconData);
+      MemoryStream := MemoryStream.MemoryStream(ByteArray);
+
+      SalesDocumentIcon.Picture.IMPORTSTREAM(MemoryStream,FORMAT(SalesDocumentIcon.Type));
+
+      SalesDocumentIcon.INSERT;
+    END;
+
+    LOCAL PROCEDURE GetIconData@4(Type@1000 : Integer) : Text;
+    VAR
+      SalesDocumentIcon@1001 : Record 2100;
+    BEGIN
+      SalesDocumentIcon.Type := Type;
+
+      CASE Type OF
+        SalesDocumentIcon.Type::"Canceled Invoice":
+          EXIT(canceledInvoiceIcon);
+        SalesDocumentIcon.Type::"Overdue Invoice":
+          EXIT(OverdueInvoiceIcon);
+        SalesDocumentIcon.Type::"Paid Invoice":
+          EXIT(PaidInvoiceIcon);
+        SalesDocumentIcon.Type::Quote:
+          EXIT(QuoteIcon);
+        SalesDocumentIcon.Type::"Unpaid Invoice":
+          EXIT(UnpaidInvoiceIcon);
+        SalesDocumentIcon.Type::"Draft Invoice":
+          EXIT(DraftInvoiceIcon);
+      END;
+
+      EXIT('');
+    END;
+
+    LOCAL PROCEDURE canceledInvoiceIcon@9() : Text;
+    BEGIN
+      EXIT('');
+    END;
+
+    LOCAL PROCEDURE UnpaidInvoiceIcon@10() : Text;
+    VAR
+      IconData@1000 : Text;
+    BEGIN
+      IconData := 'iVBORw0KGgoAAAANSUhEUgAAAZAAAAGQCAYAAACAvzbMAAAACXBIWXMAACKaAAAimgG+3fsqAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJ';
+      IconData += 'lYWR5ccllPAAAB8VJREFUeNrs3cFRGlEcwGHMeDc3juoMBaSD0AHpANKBHQQ7MBUIFUQqCCnBOwc8ctMKNu9NHhNnohnfgss+9vtm3uzkgvhn3V';
+      IconData += '9YYDmpqqoHALk+GAEAAgKAgAAgIAAICAAICAACAoCAACAgAAgIAAgIAAICgIAAICAACAgACAgAAgKAgAAgIAAICAAICAACAoCAACAgAAgIAAgIA';
+      IconData += 'AICgIAAICAACAgACAgAAgKAgAAgIAAICAAICAACAoCAACAgACAgAAgIAAICgIAAICAAICAACAgAAgKAgAAgIAAgIAAICAACAoCAACAgACAgAAgI';
+      IconData += 'AAICgIAAICAAICAACAgAAgKAgAAgIAAgIAAICAACAoCAACAgACAgAAgIAAICgIAAICAAICAACAgAAgKAgACAgAAgIAAICAACAoCAAICAACAgAAg';
+      IconData += 'IAAICgIAAgIAAICAACAgAAgKAgACAgAAgIAAICAACAoCAAICAACAgAAgIAAICgIAAgIAAICAACAgAAgKAgACAgAAgIAAICAACAgACAoCAACAgAA';
+      IconData += 'gIAAICAAICgIAAICAACAgAAgIAAgKAgAAgIAAICAACAgACAoCAACAgAAgIAAICAAICgIAAICAACAgAAgIAAgKAgAAgIAAICAACAgAZTo2gXfqD0';
+      IconData += 'dAU4GWb1WJpCgLC634aAbzqxAjawyksAAQEAAEBQEAAEBAAEBAABAQAAQFAQAAQEAAQEAD2wLWwum0e1swY2MEkrGFY50YhIHTLOP3xTzerhZDw';
+      IconData += 'Zv3BKIZjKhzd5hQW8QBwGw4I63RQgP+GI+4rcZ8RDwQEIUE4qOWkqipTaNcfalsekIfen1MUd5vV4tEj091w9Fp0qirsi74PREAoICBbT2HdxCU';
+      IconData += 'kwiEgCIiACAlFhUNA2slrIOW7Twf393YW1rew4msk07A+Gv1xhaPh1zie0r6LgHBAd2FdhHUtJBQSjuu0z955BASEwz+tfwxrKiSUEI64rzoNKi';
+      IconData += 'AIiZAIh3AICEIiJMIhHAgIQoJwICAICcKBgCAkQiIcCAhCIiTCIRwIiJAIiXAIBwKCkAiHcCAgCAnCgYAgJEIiHAgIQiIkwgECgpAIh3Cwi1MjI';
+      IconData += 'CckYRMP5vF7Qa7SOmsoJFfp5x7t95GkSDY11+fh8D0vCAhCIhzCgYAgJEcfEuFAQBASIREOBASERDjgrbwLi3cJybN3bX1v6Me29l1b8b7E+xTv';
+      IconData += 'W7qPTcUjzt67qhAQig1J/N/2ZVjzroXkgOGIs76MsxcOBITSQ7IOa9KVkLQgHJM4c3seAoKQFBIS4UBAQEiEAwQEIXm/kAgHAgJCkhUS4QABQUi';
+      IconData += 'yQiIcICAISVZIhANe5pPotDokYTNJB++4xg2GZPvJ9qjJT45vwzEVDQQEyg5Jk4SDojiFRVEhOcCprabC4VQVAgJCIhwICAiJcICAICTCAQICpY';
+      IconData += 'VEOBAQEBLhAAFBSIQDBARaEhLhQEBASIQDBATeLyTCgYCAkGSFRDhAQCArJMIBAgJZIREOeIGr8cILIen9vfpvTzRAQKBOSIBXOIUFgIAAICAAC';
+      IconData += 'AgAAgIAAgKAgAAgIAAICAACAgACAoCAACAgAAgIAAICAAICgIAAICAACAgAAgIAAgKAgAAgIEBh+oPRZI8392iiAgJ0Ix6zsLlN251tVoubsJmb';
+      IconData += 'rIAAxx+PcfrneI8RmYiIgADdiEdPRBAQoG48RAQBAWrHQ0QQEKB2PEREQABqx0NEBASgdjxERECAjsdjuEM8RERAgK4KB+xl2Hzdw02JiIAAHYz';
+      IconData += 'ITEQQEEBEEBBARFJEEBBARBAQQEREREAARAQBAUQEAQFEBAEBREREBAQQEREREAARQUAAEUFAABFBQAAREZHjclJVlSm0SPgDyn1AHsJam1xrzN';
+      IconData += 'IBNecxXx7J7/4prLM93M7cda/KcGoExTtPi3aoE4PPxvbPMxEXTyyAU1hAWyMyMwYBARARAQEQEQQEEBEEBOhARK6MQUAAct2H5VmIgABkx2O4W';
+      IconData += 'S0ejUJAAMRDQADEQ0AAxIMMLmXSPr+MoGjrDj/mF739XFZHPArhYorAzvqD0SRsbsWjW5zCAsQDAQHEAwEBxAMBAcRDPAQEEA/xQEAA8UBAAPFA';
+      IconData += 'QADxQEAA8RAPAQHEQzwQEEA8EBBAPBAQQDwQEEA8xOP4uZw7sI3Hl7D5IR54BgLkWqaDv3ggIMDbpYP+cIeIiIeAACKSHRHxEBBARLIjIh4CApA';
+      IconData += 'dEfEQEIDsiIiHgABkR0Q8EBAgOyLigYAA2RGZiwdbPokOgGcgAAgIAAICgIAAgIAAICAACAgAAgKAgACAgAAgIAAICAACAoCAAICAACAgAAgIAA';
+      IconData += 'ICgIAAgIAAICAACAgAAgKAgACAgAAgIAAICAACAoCAAICAACAgAAgIAAICgIAAgIAAICAACAgAAgIAAgKAgAAgIAAICAACAgACAoCAACAgAAgIA';
+      IconData += 'AICAAICgIAAICAACAgAAgIAAgKAgAAgIAAICAACAgACAoCAACAgAAgIAAICAAICgIAAICAACAgAAgIAAgKAgAAgIAAICAACYgQACAgAAgKAgAAg';
+      IconData += 'IAAgIAAICAACAoCAACAgACAgAAgIAAICgIAAICAAICAACAgAAgKAgAAgIAAgIAAICAACAoCAACAgACAgAAgIAAICgIAAICAAICAACAgAAgLAsfg';
+      IconData += 'twAAkUuXVWtoVEAAAAABJRU5ErkJggg==';
+      EXIT(IconData);
+    END;
+
+    LOCAL PROCEDURE PaidInvoiceIcon@11() : Text;
+    VAR
+      IconData@1000 : Text;
+    BEGIN
+      IconData := 'iVBORw0KGgoAAAANSUhEUgAAAZAAAAGQCAYAAACAvzbMAAAACXBIWXMAACKaAAAimgG+3fsqAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJ';
+      IconData += 'lYWR5ccllPAAACB5JREFUeNrs3cFN21AYwPGk4g4jkAnoLUfYoCPgbpBD7s0AHDICbNANao7cwgaMABO4n4WRqopWvMQvPNu/n/QUTiA+2+8vg5';
+      IconData += 'zMm6aZAUCqL0YAgIAAICAACAgAAgIAAgKAgAAgIAAICAACAgACAoCAACAgAAgIAAICAAICgIAAICAACAgAAgIAAgKAgAAgIAAICAACAgACAoCAA';
+      IconData += 'CAgAAgIAAICAAICgIAAICAACAgAAgIAAgKAgAAgIAAICAAICAACAoCAACAgAAgIAAgIAAICgIAAICAACAgACAgAAgKAgAAgIAAICAAICAACAoCA';
+      IconData += 'ACAgAAgIAAgIAAICgIAAICAACAgACAgAAgKAgAAgIAAICAAICAACAoCAACAgAAgIAAgIAAICgIAAICAAICAACAgAAgKAgAAgIAAgIAAICAACAoC';
+      IconData += 'AACAgACAgAAgIAAICgIAAICAAICAACAgAAgKAgAAgIAAgIAAICAACAoCAACAgACAgAAgIAAICgIAAICAAICAACAgAAgKAgACAgAAgIAAICAACAo';
+      IconData += 'CAAICAACAgAAgIAAICgIAAgIAAICAAfJoTIyjLfL1sTAHe19w8zE3BHQgAAgKAgACAgAAgIAAICAACAoCAAICAACAgAAgIAKPivbCG7yVWHWtnF';
+      IconData += 'BTuLFYV69QoBIQytBfjt+7i3DQ3D7WRUJL5etmemyvxEBDKdRnrV1ys90JCYeFYCYeAICQgHAiIkIBwICAICcKBgCAkCAcCgpAgHAgIQgLCgYAg';
+      IconData += 'JAgHAoKQIBwICEKCcCAgCAnCgYCAkAgHCMho3XWv10LCgMJxrPOWjHweyPA9xWZexevij4vyGCGpY10Z/zDDEWvTnjuxfhw5Hu05uujO2SdHwx0';
+      IconData += 'IBYgLsr0Yq25j2LgjocA7jk13niIgCImQCIdwCAhCIiTCIRwICEIiHMKBgCAkCAcCgpAIiXAgIAiJkAiHcCAgQiIkwiEcCAhCIhzCgYAgJAgHAo';
+      IconData += 'KQCIlwICAIiZAIBwgIQiIcwoGAICTCIRwICEIymZAIBwKCkAiJcCAgICTCAQKCkAiHcCAgCMkQQyIcCAgIiXCAgCAkwgECgpAUEhLhQEBASIQDB';
+      IconData += 'AQhyRcS4QABQUiSQiIcICAISVJIhAMEBCFJColwgIAgJPuE5DFez4UD/u2LETCUkMSq4stFt8nmdnHkeLS/06L9HcUDAYFxhEQ4QEAQEuEAAYHh';
+      IconData += 'hkQ4EBAQEuFAQEBIhAMEBAoJiXAgICAkwgHv8SAhkwnJ7PWBxLcny/t8uvwl1rZd8XOeTRsBgXGGpN3gNxGSbQ8hEQ4EBIQkKSTCAQKCkCSFRDh';
+      IconData += 'AQCApJMIBAgLJIZkJRzG+G4GAwGBCYhLlxCOOya0xlMVzIIB4ICCAeCAgAOIhIADiISAAA4nHfL08N0oBAcQjNR7t99jF61cjFRBAPFLicT17fR';
+      IconData += 'C0FhEBAcQjJR5vRERAAPFIjoeICAggHnvHQ0QEBBih7ZHiISICAoxJH29QmRAPEREQgL3jISICAojH3vH4OyJnpikggHikWvmcFwEBxCOV99oSE';
+      IconData += 'EA8xENAAMRDQADEQ0AAxAMBAcQDAQHEQzwEBEA8BARAPAQEQDwQEEA8EBBAPMRDQADxEA8BARAPAQEQDwQEEA8EBBAP8RAQQDzEQ0AAxENAAMQD';
+      IconData += 'AQHEAwEBxEM8BAQQD/EQEADxEBAA8UBAAPHgSMe8aRpTKOsiTD0g97FqkyPRLjbpn+LBIU6MYPAuuwUf9RhrKx4cyp+wYHrxuIqN+lk8EBBAPBA';
+      IconData += 'QQDwQEEA8xENAAPEQDwQExEM8EBBAPBAQQDwQEEA8xENAAPEQDwQExEM86Jc3UwTEA3cggHggIIB4ICCAeCAggHiIBwICiAcCAogHAgKIBwICiA';
+      IconData += 'cCAoiHeCAgIB7igYAA4oGAAOLBoJwYASPfPM/ipY61i82vEg/xwB0IpMTjot1Eu81UPMQDAYEPx+PNZCIiHggI9BePyUREPBAQ6D8eo4+IeCAgk';
+      IconData += 'C8eo42IeCAgkD8eo4uIeCAgcLx4jCYi4oGAwP72jcfgIyIeCAgcZtfD9xhcRMQDAYEDdU+Y300pIuKBgICIiAcCAiIiHggIiEiBEREPBARERDwQ';
+      IconData += 'EBAR8UBAQEQKjIh4ICAgIuKBgICIiAcICCJSYETEAwEBEREPBAREJH9ExAMBARERDwQERCR/RMQDAQEREQ8EBEQkf0TEAwEBEUmOSI/xuBMPBAQ';
+      IconData += 'mEpGe41E5eggITCAi4oGAgIgkR0Q8GJt50zSmABnvFGKtYtWxLsQDAQERSfES61Q8EBAQkc8gHhTH/0DgP3r8n4h4ICAgIuIBAgJlR0Q8EBAQEf';
+      IconData += 'FAQEBE8kdEPBAQEBHxQECA/BERDwQEREQ8EBAgf0TEAwEBEREPBATIHxHxQECA5IiIBwICJEdEPBAQIDki4oGAAMkREQ8EBEiOiHgwOj5QCnJfZ';
+      IconData += 'OtlFfG4NQkEBABm/oQFgIAAICAACAgAAgIAAgKAgAAgIAAICAACAgACAoCAACAgAAgIAAICAAICgIAAICAACAgAAgIAAgKAgAAgIAAICAACAgAC';
+      IconData += 'AoCAACAgAAgIAAICAAICgIAAICAACAgAAgIAAgKAgAAgIAAICAAICAACAoCAACAgAAgIAAgIAAICgIAAICAACAgACAgAAgKAgAAgIAAICAAICAA';
+      IconData += 'CAoCAACAgAAgIAAgIAAICgIAAICAACAgACAgAAgKAgAAgIAAICAAICAACAoCAACAgACAgAAgIAAICgIAAICAAICAACAgAAgKAgAAgIAAgIAAICA';
+      IconData += 'ACAsCw/BZgAOEhXeb55fCDAAAAAElFTkSuQmCC';
+      EXIT(IconData);
+    END;
+
+    LOCAL PROCEDURE DraftInvoiceIcon@12() : Text;
+    VAR
+      IconData@1000 : Text;
+    BEGIN
+      IconData := 'iVBORw0KGgoAAAANSUhEUgAAAZAAAAGQCAYAAACAvzbMAAAACXBIWXMAACKaAAAimgG+3fsqAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJ';
+      IconData += 'lYWR5ccllPAAAB3pJREFUeNrs3T1yEmEcwGHI0JOSLt7AFPSSG+QGkhNoGurYUukJXG4Qb4A9M+INYkcpJ1j3Hd4Gv2aB/d7nmdnBWCT47n/fn8';
+      IconData += 'swYZim6QAATnVlCQAQEAAEBAABAUBAAEBAABAQAAQEAAEBQEAAQEAAEBAABAQAAQFAQABAQAAQEAAEBAABAUBAAEBAABAQAAQEAAEBQEAAQEAAE';
+      IconData += 'BAABAQAAQFAQABAQAAQEAAEBAABAUBAAEBAABAQAAQEAAEBAAEBQEAAEBAABAQAAQEAAQFAQAAQEAAEBAABAQABAUBAABAQAAQEAAEBAAEBQEAA';
+      IconData += 'EBAABAQAAQEAAQFAQAAQEAAEBAABAQABAUBAABAQAAQEAAEBAAEBQEAAEBAABAQAAQEAAQFAQAAQEAAEBAAEBAABAUBAABAQAAQEAAQEAAEBQEA';
+      IconData += 'AEBAABAQABAQAAQFAQAAQEAAEBAAEBAABAUBAABAQAAQEAAQEAAEBQEAAEBAABAQABAQAAQFAQAAQEAAEBAAEBAABAUBAAOiWkSWAP20Wk+vsYR';
+      IconData += '6/TKbL3U+rAseGaZpaBTgOx/t4jONf77PjYziEBAQE8oTjd0ICAgInhUNIQEDgonAICQgIwnFROIQEBAThKJSQICAgHEICAoJwVBcOIUFAQDiEB';
+      IconData += 'AQE4WgOIUFAQDiEBAQE4RASEBCEQ0hAQKAJ4fgRH2+EBAQE4cgbjqdsE0/ic5iHr4UEBAThyBWOvzwnIQEBQTiOfI+bdJLzOQoJCAg9D8fXeMex';
+      IconData += 'PvM538fn+0ZIEBAQjnP+DbN4RyIkCAgIh5CAgCAcJYdDSBAQEA4hAQFBOOoLh5AgICAcQgICgnAIiZAgIAhHS8MhJAgICIeQgIBwwab3KkZjLhy';
+      IconData += 'tDkkSQ/JiqhEQqghH2OTeVvhjOx2OBoQkWMU1FhIEBOEQEiFBQOhfOL4MDi+rrJ0BIUFAEA6blpAgIAiHTUpIQEAQjjafs9vB4Z1wzhkCgnDgHC';
+      IconData += 'Ig2HRsOs4pAoJNxibjHDvHCIhNxabinDvnCAg2EcwAAoJNAzOBgGCTwIyYEQHBpmBTMDNmBgGxCdgEMEMICC56zBQCQgsu8vChQ88ucjMmJAiIi';
+      IconData += '/qUcPjYUzMnJAiIi1g4EBIExEUrHAgJAoJwYEaFREAo6uKs6oQIB0WEZD44fCbJuIqfmc3q0MoLCPUFRDgoemavY0RKD4mACAj1BEQ4aH1IBERA';
+      IconData += 'qDYgwkFnQiIgAkI1AREOOhcSAREQyg2IcNDZkAiIgFBeQD4NDm91FA6aGpKn7HgnIN1wZQk6ZWYJMKMICOd4nR3r+D89aNrdxzrOKAKCiIB4CAg';
+      IconData += 'iAuKBgCAiiAcCgoggHggIIoJ4ICCICIgHAiIiIB4ICCKCeCAgiAjigYAgIogHAoKIgHggIIgI4oGAICKIBwLC6fYFReQl2xhuLScVxmNvRQWEeo';
+      IconData += 'VPH1wV8H3G8U5ERKgiHqs4uwgIdZoud3MRoeR4hJnYFhWPOLMICCJCD+IR7jxuxAMBERER4dR4jMUDAREREUE8EBD+G5FHEaEh8XgUDwGhXREJ7';
+      IconData += '3B5EBFqjsdDnEUEhJZFJBERao5HYlUFBBEREfEQDwREREQE8UBAEBHEAwFBRBAPBAQRQTwQEERERMRDPBAQRATxoDAjS9DviGSbSfjj5wIi8i1+';
+      IconData += 'L/pDPNyB4E6kkDsRxAMBQURAPBAQRATxQEAQEcQDAaHpEbnLjr3VIAqzcCceCAh5IrLOHmYiQpyBWZwJEBByRWQrIuIR47G1FAgIIoJ4ICCICOK';
+      IconData += 'BgCAiiAcCgoggHvSF34XFSRHZLCYhIvdWo5OexQMBoew7EZsM4CUsAAQEAAEBQEAAEBAAEBAABAQAAQFAQAAQEAAQEAAEBAABAUBAABAQABAQAA';
+      IconData += 'QEAAEBQEAAEBAAEBAABAQAAQFAQAAQEAAQEAAEBAABAUBAABAQABAQAAQEAAEBQEAAEBAAEBAABAQAAQFAQABAQAAQEAAEBAABAUBAAEBAABAQA';
+      IconData += 'AQEAAEBQEAAQEAAEBAABAQAAQFAQABAQAAQEAAEBAABAUBAAEBAABAQAJpjmKapVWiQzWLihMA/TJe7oVVwBwKAgAAgIAAgIAAICAACAoCAACAg';
+      IconData += 'ACAgAAgIAAICQKeMLEHjfLAEQBv4ZYoAnMVLWAAICAACAoCAACAgACAgAAgIAAICgIAAICAAICAACAgAAgKAgAAgIAAgIAAICAACAoCAACAgACA';
+      IconData += 'gAAgIAAICgIAAICAAICAACAgAAgKAgAAgIAAgIAAICAACAoCAACAgACAgAAgIAAICgIAAgIAAICAACAgAAgKAgACAgAAgIAAICAACAoCAAICAAC';
+      IconData += 'AgAAgIAAICgIAAgIAAICAACAgAAgKAgACAgAAgIAAICAACAoCAAICAACAgAAgIAAICgIAAgIAAICAACAgAAgKAgFgCAAQEAAEBQEAAEBAAEBAAB';
+      IconData += 'AQAAQFAQAAQEAAQEAAEBAABAUBAABAQABAQAAQEAAEBQEAAEBAAEBAABAQAAQFAQAAQEAAQEAAEBAABAUBAABAQABAQAAQEAAEBQEAAEBAAEBAA';
+      IconData += 'BAQAAQGgY34JMAAzFlqmkppqzAAAAABJRU5ErkJggg==';
+      EXIT(IconData);
+    END;
+
+    LOCAL PROCEDURE QuoteIcon@13() : Text;
+    BEGIN
+      EXIT('');
+    END;
+
+    LOCAL PROCEDURE OverdueInvoiceIcon@14() : Text;
+    VAR
+      IconData@1000 : Text;
+    BEGIN
+      IconData := 'iVBORw0KGgoAAAANSUhEUgAAAZAAAAGQCAYAAACAvzbMAAAACXBIWXMAACKaAAAimgG+3fsqAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJ';
+      IconData += 'lYWR5ccllPAAADjVJREFUeNrs3UtyE9cewOH2rczNLCPKygqAMQOLFdh3BYgVQFaAWAH2CixWELOCyAPG1+zALkbM8Ap8zz86SoxjjNUv9eP7qr';
+      IconData += 'rMIJalltI/nX6c3rm+vi4AYFP/sQoAEBAABAQAAQFAQABAQAAQEAAEBAABAUBAAEBAABAQAAQEAAEBQEAAQEAAEBAABAQAAQFAQABAQAAQEAAEB';
+      IconData += 'AABAUBAAEBAABAQAAQEAAEBQEAAQEAAEBAABAQAAQFAQABAQAAQEAAEBAABAQABAUBAABAQAAQEAAEBAAEBQEAAEBAABAQAAQEAAQFAQAAQEAAE';
+      IconData += 'BAABAQABAUBAABAQAAQEAAEBAAEBQEAAEBAABAQAAQEAAQFAQAAQEAAEBAABAQABAUBAABAQAAQEAAEBAAEBQEAAEBAABAQABAQAAQFAQAAQEAA';
+      IconData += 'EBAAEBAABAUBAABAQAAQEAAQEAAEBQEAAEBAABAQABAQAAQFAQAAQEAAEBAAEBAABAUBAABAQAAQEAAQEAAEBQEAAEBAABAQABAQAAQFAQAAQEA';
+      IconData += 'AQEAAEBAABAUBAABAQABAQAAQEAAEBQEAAEBAAEBAABASArfnFKuiWT78+vrYW4G7Pv37ZsRaMQAAQEAAEBAAEBAABAUBAABAQAAQEAAQEAAEBQ';
+      IconData += 'EAAGBRzYQ3HWVqWVgM9MEvLntUgIHTHflomaZk///plYXXQNZ9+fRzhmIvHcNiFNSzxP+ZJ+h/1Iv/PCp0IR3wm47MpHgKCkIBwICBCAsKBgCAk';
+      IconData += 'CAcCgpAgHAgIQoJwICAICQgHAoKQIBwICEKCcCAgCAnCgYAgJAgHAoKQCIlwgIAMznFa3qXlSkjoSTiu8mf22NoXELbr2/OvX+bFaiZeIaEP4Zj';
+      IconData += 'kz+w374KA0AHpf0ghoRfhiM+qd0FAEBIhEQ7hEBCEREiEQzgQEIQE4UBAEBKEAwFBSIREOBAQhERIhEM4EBAhERLhEA4EBCERDuFAQBAShAMBQU';
+      IconData += 'iERDgQEIRESIQDsl+sAh4akvQjQjLPG/V5Cxu1dUj++rvpOSzGEo6W1u/a5ZjWL0YgbDcmi7TEiORV3vgYkfRzxBHv3at4L8UDAUFIhEM4EBCEZ';
+      IconData += 'OghEQ4EBIREOBAQEBLhAAFBSIRDOBAQhKSPIREOBASERDhAQBCS5kIiHAgICIlwgIAgJM2FRDgQEBCSjUIiHCAgCMlGIREOEBCEZKOQCAfczXTu';
+      IconData += '9CIk6cdiS9PIF4Vp1cEIBCOSEiEx4mjOhU+1gMDQQyIczb2PO+mfL9Jy3PP3UkBASIRjC+/jMi1v8nv5TEwEBIREOMq8l+c3YvLftHy0VgQExhw';
+      IconData += 'S4Sj3fp6m5TD987e0fLBGBATGFBLhqOf9vEjLLIcEAYFBh0Q4GgqJtSAgMNSQCAcCAkIiHCAg0FxIhAMBASHZKCTCAQICG4VEOOAGkynCjZAUd0';
+      IconData += '/aOMpJDtN6iKhOHrjulj5BAgJC8n1IiqGHI73Op+nHzWVSbDiJZHqM9T/P0vItLedpiajEleXffKqGaef6+tpa6Nb/zJu+Ie/S/6Bza44NPmOP0';
+      IconData += 'o+4wnuaf+42/Cc/p+U0lpiqxDtgBAL0MxqxHLT855/k5W16Hpc5JgsxERCg2+GIXVJvWhppPETsGnsdS3puMTI5yiMTu7l6yFlYMMxwTNOyTP/8';
+      IconData += 'X1pediQed41M4jbBcQvheR4lISDAlsPxZ1r2e/K0I25vhURAgO2EY5KWRc/C8aOQnK/PgENAgGbjEcc44oD0y4G8pDhOchIjqXwtCgICNDDqWKZ';
+      IconData += '/vi+6eYyjqv08Gnnj3RYQoL54HOZRx/7AX2qE8X16vaeOjQgIUD0ecerrHwMddfzIQR6NPPUJEBBg83A8yrusXo90FcSxkaUD7N3hQkLoSTyK1d';
+      IconData += 'xST1r6k3HF+EX+m2s3/x3PZz0amOSljd1pMeqKA+yFGZEFBPh5PGJDfVpsOMHhhtbzVUUkHjoB4ukPnmss06LZq98jIk/T83SAXUCAe+KxbGhDH';
+      IconData += 'NGIb/ExlchFHQ+Y57c6z4+7Pth/2FBMYjqUR+lvznxSBAT4Ph6PGorHh2I1meGy6deQ/sZfs/DemMxxXvNI6mV67BgxHfnEtM9BdBhPPCIcv8U3';
+      IconData += '9rZvABW7xGq8F/1t7x1YFxDgH/HNva4D5nGTp2c5HBfbfmE3QvJ7Wq5qetg4JjL1sREQGPvoI3bH1HFGU2yc4x7u0y7eeyPvdoqQfKwruqY+ERA';
+      IconData += 'YczxmRT3XecSo42nXT3XNu7bi2MirGkYju8UdZ4YhIDCGeMS35zoOBh/nUcdFX157Dt20WJ0ZVsWTPIJDQGBUFkX1g+av+nptRN7NNs2jpypeOx';
+      IconData += '4iIDCm0Uds9Ksc94jdPy/6fnV23qUVG/8PVWNs8kUBgTHEY1Ksro+oEo9p26fmNhySWcWI7FVcpzyACwlh+2KffZVdV4d1n2WVozbZcKNfa8AiI';
+      IconData += 'jHnVVH+RlmxK+uoT8eCBATYZEM9LVZTlZf1qqGRR4wA3m74OzsNPI/YtRfTuZS9JmZRrI6r0AC7sGC75hV+93joM9LmSR0jAGVP8d13QF1AYKij';
+      IconData += 'j7IHzs/GMhNtjsjhliKNgMCgRh/xbXw2phWVd9O9MwoREDD6WE3TXnb0MR/jgeH0miO4ZS80dN8QAYHBKLtBOxv51OVl19uBebIEBIYw+ljfG8M';
+      IconData += '36c1HIcui/PUhM58+AYG+K3t3vg9dnFV3C+YCIiAw5oC0ueEc2ijkouQoZC8fe0JAoH/y7qsyFw5+dEW1UYiAgNFHGaYo//co5GOL6x8Bga2blv';
+      IconData += 'idyyFNlFijRYnf2XM2loDAmEYgRh93j0Li7oNXLb0HCAhsTz6AW+bsK7dprXfdOJAuINA7ZTZclw6e1x6QqdUmIDCGgBh93CPvxtrUnrsVCgiMI';
+      IconData += 'SBLq+2nzlp6LxAQ2JpJid9x5Xkz62hitVXnjoT9N03D8bnV0LpFiWMTexv+91eOfwiIgNCk/aL8tOCUt0zLgzfuJa89MPp4mDKRFZAa2IUF7Siz';
+      IconData += 'wTL6MAIREKC1b9ajk295i4AAICAA7TmzCgQEhsqFawgIAAgItMeB3mZNrAIBAShjzyoQEAAEBKhoahX8XL7PCgICw1TylrTO3GpuPS2tturMhdW';
+      IconData += '9Dc2OtUD2ZIufw3n6MTdSwwgEumHji90+/frYxvHn3GdFQGDwypzKa/9+M+vIadUCAr1SZtZYI5D7R2gRj41P4X3+9Yup8gUEemVZ4ncO3L+79s';
+      IconData += 'CaN0tAYBQjkHBo1f3QrKWQcwdnYUFL4r4VaTTxudj87KoIyKLN55qe52zTjXN6fdOWn+OkKHemmt1XAgK9dFpioxe7sSYt3x89Ns5dv1Xym5IhP';
+      IconData += '/UxrIddWNB+QMqYWXW1rJOPVpuAQC/ls38u2/q2PVR5F9tuiwFHQKC3o5DdvNFkZd7yCBABgU5YlPy9I6f0/j36KDN9+8c4kcHHT0Cgt/JurM9l';
+      IconData += 'RiHFyHdl5YAetRxuBAQ6pexG8G0+fXWs5kW5Yx+Xzr4SEBiK2Jhd+Sa90ehjmn68ts4EBEYt74svOwrZTxvT+cji8ahCBK4qrGsEBDrpqMIo5O3';
+      IconData += 'I7sQX8Sh73/MjB88FBIxCvrccw1lZ6TXGiQMHRh/dYyoT2P4oZFby2/Vujsi0gW/YF0UHZq3Np+y+r/AQc6OP5uxcX19bC7D9jeRJhYeIU4KnQ9';
+      IconData += 'tQ5oPmf1Z4iDjzauIT1hy7sGDL0kZuUfHb/pNiYLuzcjyqnnY78+kSEBiD2NhdVfj9wUQkj8hi5LFb4WGOU5iXPlYCAmMYhVwU5ed3uh2R3p6dl';
+      IconData += 'Q+Yn1R8mMsa1iUP4BgIdGsDGrttDio+TIxkZn268vrGdR4HNTzcM/c8NwKBMZoV5aZ7vyl2/fyRNsqLPuzSysc7zmuKx+/iYQQCYx6FxC6oZVHt';
+      IconData += 'GMBaxOhNF0cjOW7zovz0JLd9SK9z5hNkBAKjlb9B1zXr7l4ejSzzN/2uxCNe30WN8fhcuOmWEQjw90Y2vk2f1PywcUvXo22coZRHHId51LFX40M';
+      IconData += 'P8joYAQGqbnSPavyWfnujG4992vSGN++Sm+Vlt+aHjxMGnuaz2BAQ4NYGeJF+vGzwT8So5LTOmNyIxmHNo43b8Zg6aC4gwP0b5Ni//76FPxUjk/';
+      IconData += 'Mby7f7NtB5t1TEYv1zmn/utvA8D408BAR4WETiG/2JNeGYR1c4Cwt6Is+Z9aKoNuVJ330QDyMQoPxIZFKsjlk8GdlLj4sE3dtDQIAaQtLUGVpdE';
+      IconData += 'xdDHjpY3j12YUFPpQ1qHFh/UVSf+qTLjovVabriYQQCNDASqXtKkK6MOmamZBcQoJ2QTIrVjLb7PX4ZcYLA3LEOAQG2E5JpHpH0KSQRjojGkTOs';
+      IconData += 'BAToRkjiOMlBh5/mZR41CYeAAB0MyaT4Zy6qvY48rZg+ZdGnm14hIDD2mLQxR9V90ah1zi0EBNjeyCRCMi1W81fVHZSzYnVjrHMjDQEBhh2U9YS';
+      IconData += 'Ik1vLQyxv/Pzmug0BAYAfciU6AAICgIAAICAACAgACAgAAgKAgAAgIAAICAAICAACAoCAACAgAAgIAAgIAAICgIAAICAACAgACAgAAgKAgAAgIA';
+      IconData += 'AICAAICAACAoCAACAgAAgIAAgIAAICgIAAICAACAgACAgAAgKAgAAgIAAgIAAICAACAoCAACAgACAgAAgIAAICgIAAICAAICAACAgAAgKAgAAgI';
+      IconData += 'AAgIAAICAACAoCAACAgACAgAAgIAAICgIAAICAAICAACAgAAgKAgAAgIAAgIAAICAACAoCAACAgVgEAAgKAgAAgIAAICAAICAACAoCAACAgAAgI';
+      IconData += 'AAgIAAICgIAAICAACAgACAgAAgKAgAAgIAAICAAICAACAoCAACAgAAgIAAgIAAICgIAAICAACAgACAgAAgJAB/1fgAEAUMOtVgkW07QAAAAASUV';
+      IconData += 'ORK5CYII=';
+
+      EXIT(IconData);
+    END;
+
+    BEGIN
+    END.
+  }
+}
+

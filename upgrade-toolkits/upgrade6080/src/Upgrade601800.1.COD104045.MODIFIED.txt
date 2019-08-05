@@ -1,0 +1,2826 @@
+OBJECT Codeunit 104045 Upgrade Nav Old Version
+{
+  OBJECT-PROPERTIES
+  {
+    Date=11/02/19;
+    Time=11:38:33 AM;
+    Modified=Yes;
+    Version List=UPGTK8.00.00,NAVUP;
+  }
+  PROPERTIES
+  {
+    OnRun=VAR
+            StateIndicator@1000 : Record 104037;
+            StatusLog@1001 : Record 104002;
+          BEGIN
+            IF NOT CheckPrecondition THEN BEGIN
+              ShowErrors;
+              ERROR('');
+            END;
+
+            StatusLog.StartStep1;
+            TimeLog.TimeLogStartStop(TimeLog,TRUE);
+            Upgrade(StateIndicator);
+            StateIndicator.Start;
+            Upgrade(StateIndicator);
+            StateIndicator.CleanUp;
+            TimeLog.TimeLogStartStop(TimeLog,FALSE);
+            StatusLog.FinishStep;
+          END;
+
+  }
+  CODE
+  {
+    VAR
+      TimeLog@1000 : Record 104001;
+      UpgradeErrorLog@1003 : Record 104003;
+      TXT_CompleteShpt@1006 : TextConst 'ENU=There must not be a partially shipped %1 in the system which requires warehouse shipment. Please complete shipment for every %1 in Service Order %2 with %3 %4 before upgrading.';
+      TXT_FieldNotEmpty@1008 : TextConst 'ENU=Data in %1, %2 cannot be upgraded if more than one of the following fields are filled:\%3.';
+      TXT_ExistingStdCostWksh@1010 : TextConst 'ENU=The Standard Cost Worksheet table must be emptied.';
+      TXT_ExistingBOMJnlLine@1002 : TextConst 'ENU=The BOM Journal feature is not supported in the version you are upgrading to. You must therefore delete or post all BOM journal lines before upgrading./The BOM ledger and BOM register entries are retained for access after upgrade.';
+
+    PROCEDURE Upgrade@1(VAR StateIndicator@1000 : Record 104037);
+    BEGIN
+      UpdateGeneralPostingSetup(StateIndicator);
+      UpdateSalesInvoiceHeader(StateIndicator);
+      UpdateSalesCrMemoHeader(StateIndicator);
+      DeleteProductionScheduleSetup(StateIndicator);
+      DeleteOnlineMapSetup(StateIndicator);
+      UpdateReservationEntry(StateIndicator);
+      UpdateJob(StateIndicator);
+      UpdateJobTask(StateIndicator);
+      UpdateJobPlanningLine(StateIndicator);
+      UpdateJobWIPEntry(StateIndicator);
+      UpdateJobWIPGLEntry(StateIndicator);
+      UpdateJobLedgerEntry(StateIndicator);
+      UpdateResourcePrice(StateIndicator);
+      UpdateResourcePriceChange(StateIndicator);
+      UpdateResJournalLine(StateIndicator);
+      UpdateCompanyInformation(StateIndicator);
+      UpdateValueEntry(StateIndicator);
+      DeleteEmployeePortalData(StateIndicator);
+      DeleteMobileData(StateIndicator);
+      DeleteBusinessNotificationData(StateIndicator);
+      DeleteMigrationData(StateIndicator);
+      UpdateItemJournalLine(StateIndicator);
+      UpdateItemLedgerEntry(StateIndicator);
+      UpdateItemApplnEntryHistory(StateIndicator);
+      UpdateCostShareBuffer(StateIndicator);
+      UpdateCapacityLedgerEntry(StateIndicator);
+      UpdateProdOrderLine(StateIndicator);
+      DeleteBusinessAnalyticsData(StateIndicator);
+      DeleteItemAnalysisSalesData(StateIndicator);
+      DeleteCommerceGatewayData(StateIndicator);
+      ClearMarketingSetup(StateIndicator);
+      ClearAttachmentEmails(StateIndicator);
+      ClearMailGUIDFields(StateIndicator);
+      ClearPropertyStore(StateIndicator);
+      ClearEmailLoggingSemaphore(StateIndicator);
+      DeleteContactsearch(StateIndicator);
+      DeleteOldJobQueue(StateIndicator);
+      ProcessEmptyBUoMItems(StateIndicator);
+      DeleteBOMJournalTemplate(StateIndicator);
+      DeleteBOMJournalBatch(StateIndicator);
+      UpdateLocation(StateIndicator);
+      UpdateSourceCodeSetup(StateIndicator);
+      UpdateBOMComp(StateIndicator);
+      UpdateDOCreditCard(StateIndicator);
+      FillInTempWindowsLogin(StateIndicator);
+      DeleteUnusedADCSTables(StateIndicator);
+      UpdateOutlookSynchFilter(StateIndicator);
+      UpdateOutlookSynchField(StateIndicator);
+      UpdateOutlookSynchOptionCorrel(StateIndicator);
+      FillInTempUser(StateIndicator);
+      FillInTempMemberOf(StateIndicator);
+    END;
+
+    LOCAL PROCEDURE CheckPrecondition@45() : Boolean;
+    VAR
+      StateIndicator@1000 : Record 104037;
+    BEGIN
+      IF NOT StateIndicator.ISEMPTY THEN
+        EXIT(TRUE);
+
+      UpgradeErrorLog.SETRANGE("Company Name",COMPANYNAME);
+      UpgradeErrorLog.DELETEALL;
+
+      CheckStdCostWksh;
+      CheckBOMJnlLine;
+      CheckServiceLine;
+      CheckItemJnlLine;
+      CheckItemLedgEntry;
+
+      COMMIT;
+      EXIT(UpgradeErrorLog.ISEMPTY);
+    END;
+
+    LOCAL PROCEDURE CheckBOMJnlLine@42();
+    VAR
+      BOMJnlLine@1000 : Record 89;
+    BEGIN
+      WITH BOMJnlLine DO BEGIN
+        IF NOT ISEMPTY THEN
+          UpgradeErrorLog.SetError(STRSUBSTNO(TXT_ExistingBOMJnlLine),
+            DATABASE::"BOM Journal Line",GETPOSITION(TRUE));
+      END;
+    END;
+
+    LOCAL PROCEDURE CheckServiceLine@60();
+    VAR
+      ServiceLine@1000 : Record 5902;
+      Location@1001 : Record 14;
+    BEGIN
+      WITH ServiceLine DO BEGIN
+        SETFILTER("Location Code",'<>%1','');
+        SETFILTER("Quantity Shipped",'>%1',0);
+        SETRANGE("Completely Shipped",FALSE);
+        IF FINDSET THEN BEGIN
+          REPEAT
+            Location.GET("Location Code");
+            IF Location."Require Shipment" THEN
+              UpgradeErrorLog.SetError(
+                STRSUBSTNO(TXT_CompleteShpt,TABLECAPTION,"Document No.",Location.TABLECAPTION,"Location Code"),
+                DATABASE::"Service Line",
+                ServiceLine.GETPOSITION);
+          UNTIL NEXT = 0;
+        END;
+      END;
+    END;
+
+    LOCAL PROCEDURE CheckItemJnlLine@90();
+    VAR
+      ItemJnlLine@1001 : Record 83;
+      i@1002 : Integer;
+    BEGIN
+      FOR i := 1 TO 3 DO
+        WITH ItemJnlLine DO BEGIN
+          SETFILTER("Prod. Order No.",'<>%1','');
+          SETFILTER("Transfer Order No.",'<>%1','');
+          SETFILTER("Service Order No.",'<>%1','');
+          CASE i OF
+            1 :
+              SETRANGE("Prod. Order No.");
+            2 :
+              SETRANGE("Transfer Order No.");
+            3 :
+              SETRANGE("Service Order No.");
+          END;
+          IF FINDSET(TRUE) THEN
+            REPEAT
+              UpgradeErrorLog.SetError(STRSUBSTNO(TXT_FieldNotEmpty,TABLECAPTION,GETPOSITION(TRUE),
+                  FIELDCAPTION("Prod. Order No.") + ',' +
+                  FIELDCAPTION("Transfer Order No.") + ',' +
+                  FIELDCAPTION("Service Order No.")),
+                DATABASE::"Item Journal Line",GETPOSITION(TRUE));
+            UNTIL NEXT = 0;
+        END;
+    END;
+
+    LOCAL PROCEDURE CheckStdCostWksh@53();
+    VAR
+      StdCostWksh@1001 : Record 5841;
+    BEGIN
+      WITH StdCostWksh DO
+        IF FINDSET(TRUE) THEN
+          UpgradeErrorLog.SetError(STRSUBSTNO(TXT_ExistingStdCostWksh),
+            DATABASE::"Standard Cost Worksheet",GETPOSITION(TRUE));
+    END;
+
+    LOCAL PROCEDURE CheckItemLedgEntry@35();
+    VAR
+      ItemLedgEntry@1001 : Record 32;
+      i@1002 : Integer;
+    BEGIN
+      // 003 NAVUP-890 >> moved check to sql
+      {
+      FOR i := 1 TO 3 DO
+        WITH ItemLedgEntry DO BEGIN
+          SETFILTER("Prod. Order No.",'<>%1','');
+          SETFILTER("Transfer Order No.",'<>%1','');
+          SETFILTER("Service Order No.",'<>%1','');
+          CASE i OF
+            1 :
+              SETRANGE("Prod. Order No.");
+            2 :
+              SETRANGE("Transfer Order No.");
+            3 :
+              SETRANGE("Service Order No.");
+          END;
+          IF FINDSET(TRUE) THEN
+            REPEAT
+              UpgradeErrorLog.SetError(STRSUBSTNO(TXT_FieldNotEmpty,TABLECAPTION,GETPOSITION(TRUE),
+                  FIELDCAPTION("Prod. Order No.") + ',' +
+                  FIELDCAPTION("Transfer Order No.") + ',' +
+                  FIELDCAPTION("Service Order No.")),
+                DATABASE::"Item Ledger Entry",GETPOSITION(TRUE));
+            UNTIL NEXT = 0;
+        END;
+        }
+      // 003 NAVUP-890 <<
+    END;
+
+    PROCEDURE ShowErrors@19();
+    BEGIN
+      FORM.RUN(0,UpgradeErrorLog);
+    END;
+
+    LOCAL PROCEDURE UpdateGeneralPostingSetup@39(VAR StateIndicator@1000 : Record 104037);
+    VAR
+      GeneralPostingSetup@1001 : Record 252;
+    BEGIN
+      // Update "Job Sales Adjmt. Account" not used anymore
+      WITH GeneralPostingSetup DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          IF FINDFIRST THEN BEGIN
+            StateIndicator.Update;
+            MODIFYALL("Job Sales Adjmt. Account",'');
+            MODIFYALL("Job Cost Adjmt. Account",'');
+          END;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+    END;
+
+    PROCEDURE UpdateSalesInvoiceHeader@4(VAR StateIndicator@1000 : Record 104037);
+    VAR
+      SalesInvoiceHeader@1001 : Record 112;
+    BEGIN
+      // Update "Service Mgt. Document" not used anymore
+      WITH SalesInvoiceHeader DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          IF FINDFIRST THEN BEGIN
+            StateIndicator.Update;
+      // 003 NAVUP-890 >>
+      //      MODIFYALL("Service Mgt. Document",FALSE);
+      // 003 NAVUP-890 <<
+          END;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+    END;
+
+    PROCEDURE UpdateSalesCrMemoHeader@5(VAR StateIndicator@1000 : Record 104037);
+    VAR
+      SalesCrMemoHeader@1001 : Record 114;
+    BEGIN
+      // Update "Service Mgt. Document" not used anymore
+      WITH SalesCrMemoHeader DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          IF FINDFIRST THEN BEGIN
+      // 003 NAVUP-890 >>
+      //      MODIFYALL("Service Mgt. Document",FALSE);
+      // 003 NAVUP-890 <<
+            StateIndicator.Update;
+          END;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+    END;
+
+    PROCEDURE UpdateReservationEntry@6(VAR StateIndicator@1000 : Record 104037);
+    VAR
+      ReservationEntry@1001 : Record 337;
+    BEGIN
+      // Update "Reserved Pick & Ship Qty." not used anymore
+      WITH ReservationEntry DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          IF FINDFIRST THEN BEGIN
+            StateIndicator.Update;
+            MODIFYALL("Reserved Pick & Ship Qty.",0);
+          END;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+    END;
+
+    LOCAL PROCEDURE DeleteProductionScheduleSetup@2(VAR StateIndicator@1000 : Record 104037);
+    VAR
+      ProductionScheduleSetup@1001 : Record 5500;
+    BEGIN
+      // Delete "Production Schedule Setup" not used anymore
+      WITH ProductionScheduleSetup DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          IF FINDFIRST THEN BEGIN
+            StateIndicator.Update;
+            DELETEALL;
+          END;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+    END;
+
+    LOCAL PROCEDURE DeleteOnlineMapSetup@8(VAR StateIndicator@1000 : Record 104037);
+    VAR
+      OnlineMapSetup@1001 : Record 800;
+      OnlineMapParameterSetup@1002 : Record 801;
+    BEGIN
+      WITH OnlineMapSetup DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          IF FINDFIRST THEN BEGIN
+            StateIndicator.Update;
+            DELETEALL;
+            OnlineMapParameterSetup.DELETEALL;
+          END;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+    END;
+
+    PROCEDURE UpdateJob@7(VAR StateIndicator@1000 : Record 104037);
+    VAR
+      Job@1001 : Record 167;
+      TempJob@1002 : Record 104050;
+    BEGIN
+      WITH Job DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          IF FINDSET(TRUE) THEN
+            REPEAT
+              StateIndicator.Update;
+
+              TempJob.INIT;
+              TempJob."Job No." := "No.";
+              TempJob."WIP Method" := "WIP Method";
+              TempJob.INSERT;
+              "WIP Method" := 0;
+
+              "WIP Posted To G/L" := FALSE;
+              "Calc. WIP Method Used" := "Calc. WIP Method Used"::" ";
+              "Posted WIP Method Used" := "Posted WIP Method Used"::" ";
+
+              MODIFY;
+            UNTIL NEXT = 0;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+    END;
+
+    PROCEDURE UpdateJobTask@11(VAR StateIndicator@1000 : Record 104037);
+    VAR
+      JobTask@1001 : Record 1001;
+    BEGIN
+      WITH JobTask DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          IF FINDSET(TRUE) THEN
+            REPEAT
+              StateIndicator.Update;
+              InitWIPFields;
+              MODIFY;
+            UNTIL NEXT = 0;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+    END;
+
+    PROCEDURE UpdateJobPlanningLine@15(VAR StateIndicator@1000 : Record 104037);
+    VAR
+      JobPlanningLine@1001 : Record 1003;
+      TempJobPlanningLine@1002 : Record 104052;
+    BEGIN
+      WITH JobPlanningLine DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          IF FINDSET(TRUE) THEN
+            REPEAT
+              StateIndicator.Update;
+              IF Transferred OR Invoiced THEN BEGIN
+                TempJobPlanningLine.INIT;
+                TempJobPlanningLine."Job No." := "Job No.";
+                TempJobPlanningLine."Job Task No." := "Job Task No.";
+                TempJobPlanningLine."Line No." := "Line No.";
+                TempJobPlanningLine.Invoiced := Invoiced;
+                TempJobPlanningLine.Transferred := Transferred;
+                TempJobPlanningLine."Invoice Type" := "Invoice Type";
+                TempJobPlanningLine."Invoice No." := "Invoice No.";
+                TempJobPlanningLine."Transferred Date" := "Transferred Date";
+                TempJobPlanningLine."Invoiced Date" := "Invoiced Date";
+                TempJobPlanningLine."Invoiced Amount (LCY)" := "Invoiced Amount (LCY)";
+                TempJobPlanningLine."Invoiced Cost Amount (LCY)" := "Invoiced Cost Amount (LCY)";
+                TempJobPlanningLine."Job Ledger Entry No." := "Job Ledger Entry No.";
+                TempJobPlanningLine.INSERT;
+                "Job Ledger Entry No." := 0;
+              END;
+
+              Invoiced := FALSE;
+              Transferred := FALSE;
+              "Invoice Type" := "Invoice Type"::" ";
+              "Invoice No." := '';
+              "Transferred Date" := 0D;
+              "Invoiced Date" := 0D;
+              "Invoiced Amount (LCY)" := 0;
+              "Invoiced Cost Amount (LCY)" := 0;
+              "Inv. Curr. Unit Price" := 0;
+              "Inv. Curr. Line Amount" := 0;
+              "Invoice Currency" := FALSE;
+              "Invoice Currency Code" := '';
+              "Invoice Currency Factor" := 0;
+              MODIFY;
+            UNTIL NEXT = 0;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+    END;
+
+    PROCEDURE UpdateJobWIPEntry@9(VAR StateIndicator@1000 : Record 104037);
+    VAR
+      JobWIPEntry@1001 : Record 1004;
+    BEGIN
+      WITH JobWIPEntry DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          IF FINDFIRST THEN BEGIN
+            StateIndicator.Update;
+            DELETEALL;
+          END;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+    END;
+
+    PROCEDURE UpdateJobWIPGLEntry@10(VAR StateIndicator@1000 : Record 104037);
+    VAR
+      JobWIPGLEntry@1001 : Record 1005;
+      TempJobWIPGLEntry@1002 : Record 104051;
+      NewType@1003 : Integer;
+    BEGIN
+      WITH JobWIPGLEntry DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          IF FINDSET(TRUE) THEN
+            REPEAT
+              StateIndicator.Update;
+
+              TempJobWIPGLEntry.INIT;
+              TempJobWIPGLEntry."Entry No." := "Entry No.";
+              TempJobWIPGLEntry."WIP Method Used" := "WIP Method Used";
+              TempJobWIPGLEntry."WIP Schedule (Total Cost)" := "WIP Schedule (Total Cost)";
+              TempJobWIPGLEntry."WIP Schedule (Total Price)" := "WIP Schedule (Total Price)";
+              TempJobWIPGLEntry."WIP Usage (Total Cost)" := "WIP Usage (Total Cost)";
+              TempJobWIPGLEntry."WIP Usage (Total Price)" := "WIP Usage (Total Price)";
+              TempJobWIPGLEntry."WIP Contract (Total Cost)" := "WIP Contract (Total Cost)";
+              TempJobWIPGLEntry."WIP Contract (Total Price)" := "WIP Contract (Total Price)";
+              TempJobWIPGLEntry."WIP (Invoiced Price)" := "WIP (Invoiced Price)";
+              TempJobWIPGLEntry."WIP (Invoiced Cost)" := "WIP (Invoiced Cost)";
+              TempJobWIPGLEntry."WIP Posting Date Filter" := "WIP Posting Date Filter";
+              TempJobWIPGLEntry."WIP Planning Date Filter" := "WIP Planning Date Filter";
+              TempJobWIPGLEntry.INSERT;
+
+              "WIP Method Used" := 0;
+              "WIP Schedule (Total Cost)" := 0;
+              "WIP Schedule (Total Price)" := 0;
+              "WIP Usage (Total Cost)" := 0;
+              "WIP Usage (Total Price)" := 0;
+              "WIP Contract (Total Cost)" := 0;
+              "WIP Contract (Total Price)" := 0;
+              "WIP (Invoiced Price)" := 0;
+              "WIP (Invoiced Cost)" := 0;
+              "WIP Posting Date Filter" := '';
+              "WIP Planning Date Filter" := '';
+
+              IF (Type = Type::"WIP Sales") OR (Type = Type::"WIP Costs") THEN BEGIN
+                IF Type = Type::"WIP Costs" THEN
+                  NewType := Type::"WIP Sales"
+                ELSE
+                  NewType := Type::"WIP Costs";
+                Type := NewType;
+              END;
+
+              MODIFY;
+            UNTIL NEXT = 0;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+    END;
+
+    LOCAL PROCEDURE UpdateJobLedgerEntry@3(VAR StateIndicator@1000 : Record 104037);
+    VAR
+      JobLedgerEntry@1001 : Record 169;
+    BEGIN
+      WITH JobLedgerEntry DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          IF FINDFIRST THEN BEGIN
+            StateIndicator.Update;
+            MODIFYALL("Amt. to Recognize",0);
+            MODIFYALL("Amt. Recognized",0);
+          END;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+    END;
+
+    LOCAL PROCEDURE UpdateResourcePrice@50(VAR StateIndicator@1000 : Record 104037);
+    VAR
+      ResourcePrice@1001 : Record 201;
+      JobResourcePrice@1002 : Record 1012;
+    BEGIN
+      WITH ResourcePrice DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          SETFILTER("Job No.",'<>%1','');
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          IF FINDSET THEN BEGIN
+            REPEAT
+              StateIndicator.Update;
+              JobResourcePrice."Job No." := "Job No.";
+              JobResourcePrice.Type := Type;
+              JobResourcePrice.Code := Code;
+              JobResourcePrice."Work Type Code" := "Work Type Code";
+              JobResourcePrice."Currency Code" := "Currency Code";
+              JobResourcePrice."Unit Price" := "Unit Price";
+              IF JobResourcePrice.INSERT THEN;
+            UNTIL NEXT = 0;
+            DELETEALL;
+          END;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+    END;
+
+    LOCAL PROCEDURE UpdateOutlookSynchFilter@75(VAR StateIndicator@1000 : Record 104037);
+    VAR
+      OutlookSynchFilter@1001 : Record 5303;
+    BEGIN
+      WITH OutlookSynchFilter DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          IF FINDFIRST THEN BEGIN
+            StateIndicator.Update;
+            MODIFYALL("Field Name",'');
+          END;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+    END;
+
+    LOCAL PROCEDURE UpdateOutlookSynchField@76(VAR StateIndicator@1000 : Record 104037);
+    VAR
+      OutlookSynchField@1001 : Record 5304;
+    BEGIN
+      WITH OutlookSynchField DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          IF FINDFIRST THEN BEGIN
+            StateIndicator.Update;
+            MODIFYALL("Field Name",'');
+          END;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+    END;
+
+    LOCAL PROCEDURE UpdateOutlookSynchOptionCorrel@77(VAR StateIndicator@1000 : Record 104037);
+    VAR
+      OutlookSynchOptionCorrel@1001 : Record 5307;
+    BEGIN
+      WITH OutlookSynchOptionCorrel DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          IF FINDFIRST THEN BEGIN
+            StateIndicator.Update;
+            MODIFYALL("Field Value",'');
+          END;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+    END;
+
+    LOCAL PROCEDURE UpdateResourcePriceChange@71(VAR StateIndicator@1000 : Record 104037);
+    VAR
+      ResourcePriceChange@1001 : Record 335;
+      ResourcePriceChange2@1002 : Record 335;
+    BEGIN
+      WITH ResourcePriceChange DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          IF FINDFIRST THEN
+            REPEAT
+              StateIndicator.Update;
+              IF NOT ResourcePriceChange2.GET('',Type,Code,"Work Type Code","Currency Code") THEN
+                RENAME('',Type,Code,"Work Type Code","Currency Code");
+            UNTIL NEXT = 0;
+
+          SETFILTER("Job No.",'<>%1','');
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+    END;
+
+    LOCAL PROCEDURE UpdateResJournalLine@70(VAR StateIndicator@1000 : Record 104037);
+    VAR
+      ResJournalLine@1001 : Record 207;
+    BEGIN
+      WITH ResJournalLine DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          IF FINDFIRST THEN BEGIN
+            StateIndicator.Update;
+            MODIFYALL(Chargeable,FALSE);
+          END;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+    END;
+
+    LOCAL PROCEDURE UpdateCompanyInformation@12(VAR StateIndicator@1000 : Record 104037);
+    VAR
+      CompanyInformation@1001 : Record 79;
+    BEGIN
+      WITH CompanyInformation DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          IF GET THEN BEGIN
+            StateIndicator.Update;
+            IF ("Abbreviated Name" <> '') OR "Show Abbreviated Name" THEN BEGIN
+              "Abbreviated Name" := '';
+              "Show Abbreviated Name" := FALSE;
+              MODIFY;
+            END;
+          END;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+    END;
+
+    LOCAL PROCEDURE UpdateValueEntry@91(VAR StateIndicator@1000 : Record 104037);
+    BEGIN
+      // 003 NAVUP-890 >> moved to SQL
+      //SourceCodeFromSalesShptLine(StateIndicator);
+      //SourceCodeFromSalesInvoiceLine(StateIndicator);
+      //SourceCodeFromSalesCrMemoLine(StateIndicator);
+
+      //SourceCodeFromPurchRcptLine(StateIndicator);
+      //SourceCodeFromPurchInvLine(StateIndicator);
+      //SourceCodeFromPurchCrMemoLine(StateIndicator);
+
+      //SourceCodeFromReturnShptLine(StateIndicator);
+      //SourceCodeFromReturnRcptLine(StateIndicator);
+
+      //UpdateValueEntry2(StateIndicator);
+      // 003 NAVUP-890 <<
+    END;
+
+    LOCAL PROCEDURE SourceCodeFromSalesShptLine@92(VAR StateIndicator@1000 : Record 104037);
+    VAR
+      SalesShipmentHeader@1003 : Record 110;
+      SalesShipmentLine@1001 : Record 111;
+      ValueEntry@1002 : Record 5802;
+    BEGIN
+      WITH SalesShipmentHeader DO BEGIN
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          IF FIND('-') THEN
+            REPEAT
+              StateIndicator.Update;
+              IF "Sell-to Customer No." <> "Bill-to Customer No." THEN BEGIN
+                SalesShipmentLine.SETRANGE("Document No.","No.");
+                SalesShipmentLine.SETRANGE(Type,SalesShipmentLine.Type::Item);
+                IF SalesShipmentLine.FINDSET THEN
+                  REPEAT
+                    ModifySourceCodeOfValueEntry(
+                      "No.",SalesShipmentLine."No.",'',
+                      ValueEntry."Item Ledger Entry Type"::Sale,"Sell-to Customer No.","Bill-to Customer No.");
+                  UNTIL SalesShipmentLine.NEXT = 0;
+              END;
+            UNTIL NEXT = 0;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+      END;
+    END;
+
+    LOCAL PROCEDURE SourceCodeFromSalesInvoiceLine@93(VAR StateIndicator@1000 : Record 104037);
+    VAR
+      SalesInvoiceHeader@1003 : Record 112;
+      SalesInvoiceLine@1001 : Record 113;
+      ValueEntry@1002 : Record 5802;
+    BEGIN
+      WITH SalesInvoiceHeader DO BEGIN
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          IF FIND('-') THEN
+            REPEAT
+              StateIndicator.Update;
+              IF "Sell-to Customer No." <> "Bill-to Customer No." THEN BEGIN
+                SalesInvoiceLine.SETRANGE("Document No.","No.");
+                SalesInvoiceLine.SETFILTER(Type,'%1|%2',SalesInvoiceLine.Type::Item,SalesInvoiceLine.Type::"Charge (Item)");
+                IF SalesInvoiceLine.FINDSET THEN
+                  REPEAT
+                    CASE SalesInvoiceLine.Type OF
+                        SalesInvoiceLine.Type::Item:
+                          ModifySourceCodeOfValueEntry(
+                            "No.",SalesInvoiceLine."No.",'',
+                            ValueEntry."Item Ledger Entry Type"::Sale,"Sell-to Customer No.","Bill-to Customer No.");
+                        SalesInvoiceLine.Type::"Charge (Item)":
+                          ModifySourceCodeOfValueEntry(
+                            "No.",'',SalesInvoiceLine."No.",
+                            ValueEntry."Item Ledger Entry Type"::Sale,"Sell-to Customer No.","Bill-to Customer No.");
+                    END;
+                  UNTIL SalesInvoiceLine.NEXT = 0;
+              END;
+            UNTIL NEXT = 0;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+      END;
+    END;
+
+    LOCAL PROCEDURE SourceCodeFromSalesCrMemoLine@94(VAR StateIndicator@1000 : Record 104037);
+    VAR
+      SalesCrMemoHeader@1003 : Record 114;
+      SalesCrMemoLine@1001 : Record 115;
+      ValueEntry@1002 : Record 5802;
+    BEGIN
+      WITH SalesCrMemoHeader DO BEGIN
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          IF FIND('-') THEN
+            REPEAT
+              StateIndicator.Update;
+              IF "Sell-to Customer No." <> "Bill-to Customer No." THEN BEGIN
+                SalesCrMemoLine.SETRANGE("Document No.","No.");
+                SalesCrMemoLine.SETFILTER(Type,'%1|%2',SalesCrMemoLine.Type::Item,SalesCrMemoLine.Type::"Charge (Item)");
+                IF SalesCrMemoLine.FINDSET THEN
+                  REPEAT
+                    CASE SalesCrMemoLine.Type OF
+                      SalesCrMemoLine.Type::Item:
+                        ModifySourceCodeOfValueEntry(
+                          "No.",SalesCrMemoLine."No.",'',
+                          ValueEntry."Item Ledger Entry Type"::Sale,"Sell-to Customer No.","Bill-to Customer No.");
+                      SalesCrMemoLine.Type::"Charge (Item)":
+                        ModifySourceCodeOfValueEntry(
+                          "No.",'',SalesCrMemoLine."No.",
+                          ValueEntry."Item Ledger Entry Type"::Sale,"Sell-to Customer No.","Bill-to Customer No.");
+                    END;
+                  UNTIL SalesCrMemoLine.NEXT = 0;
+              END
+            UNTIL NEXT = 0;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+      END;
+    END;
+
+    LOCAL PROCEDURE SourceCodeFromPurchRcptLine@95(VAR StateIndicator@1000 : Record 104037);
+    VAR
+      PurchRcptHeader@1003 : Record 120;
+      PurchRcptLine@1001 : Record 121;
+      ValueEntry@1002 : Record 5802;
+    BEGIN
+      WITH PurchRcptHeader DO BEGIN
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          IF FIND('-') THEN
+            REPEAT
+              StateIndicator.Update;
+              IF "Buy-from Vendor No." <> "Pay-to Vendor No." THEN BEGIN
+                PurchRcptLine.SETRANGE("Document No.","No.");
+                PurchRcptLine.SETRANGE(Type,PurchRcptLine.Type::Item);
+                IF PurchRcptLine.FINDSET THEN
+                  REPEAT
+                    ModifySourceCodeOfValueEntry(
+                      "No.",PurchRcptLine."No.",'',
+                      ValueEntry."Item Ledger Entry Type"::Purchase,"Buy-from Vendor No.","Pay-to Vendor No.");
+                  UNTIL PurchRcptLine.NEXT = 0;
+              END;
+            UNTIL NEXT = 0;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+      END;
+    END;
+
+    LOCAL PROCEDURE SourceCodeFromPurchInvLine@96(VAR StateIndicator@1000 : Record 104037);
+    VAR
+      PurchInvheader@1003 : Record 122;
+      PurchInvLine@1001 : Record 123;
+      ValueEntry@1002 : Record 5802;
+    BEGIN
+      WITH PurchInvheader DO BEGIN
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          IF FIND('-') THEN
+            REPEAT
+              StateIndicator.Update;
+              IF "Buy-from Vendor No." <> "Pay-to Vendor No." THEN BEGIN
+                PurchInvLine.SETRANGE("Document No.","No.");
+                PurchInvLine.SETFILTER(Type,'%1|%2',PurchInvLine.Type::Item,PurchInvLine.Type::"Charge (Item)");
+                IF PurchInvLine.FINDSET THEN
+                  REPEAT
+                    CASE PurchInvLine.Type OF
+                      PurchInvLine.Type::Item:
+                        ModifySourceCodeOfValueEntry(
+                          "No.",PurchInvLine."No.",'',
+                          ValueEntry."Item Ledger Entry Type"::Purchase,"Buy-from Vendor No.","Pay-to Vendor No.");
+                      PurchInvLine.Type::"Charge (Item)":
+                        ModifySourceCodeOfValueEntry(
+                          "No.",'',PurchInvLine."No.",
+                          ValueEntry."Item Ledger Entry Type"::Purchase,"Buy-from Vendor No.","Pay-to Vendor No.");
+                    END;
+                  UNTIL PurchInvLine.NEXT = 0;
+              END;
+            UNTIL NEXT = 0;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+      END;
+    END;
+
+    LOCAL PROCEDURE SourceCodeFromPurchCrMemoLine@97(VAR StateIndicator@1000 : Record 104037);
+    VAR
+      PurchCrMemoHeader@1003 : Record 124;
+      PurchCrMemoLine@1001 : Record 125;
+      ValueEntry@1002 : Record 5802;
+    BEGIN
+      WITH PurchCrMemoHeader DO BEGIN
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          IF FIND('-') THEN
+            REPEAT
+              StateIndicator.Update;
+              IF "Buy-from Vendor No." <> "Pay-to Vendor No." THEN BEGIN
+                PurchCrMemoLine.SETRANGE("Document No.","No.");
+                PurchCrMemoLine.SETFILTER(Type,'%1|%2',PurchCrMemoLine.Type::Item,PurchCrMemoLine.Type::"Charge (Item)");
+                IF PurchCrMemoLine.FINDSET THEN
+                  REPEAT
+                    CASE PurchCrMemoLine.Type OF
+                      PurchCrMemoLine.Type::Item:
+                        ModifySourceCodeOfValueEntry(
+                          "No.",PurchCrMemoLine."No.",'',
+                          ValueEntry."Item Ledger Entry Type"::Purchase,"Buy-from Vendor No.","Pay-to Vendor No.");
+                      PurchCrMemoLine.Type::"Charge (Item)":
+                        ModifySourceCodeOfValueEntry(
+                          "No.",'',PurchCrMemoLine."No.",
+                          ValueEntry."Item Ledger Entry Type"::Purchase,"Buy-from Vendor No.","Pay-to Vendor No.");
+                    END;
+                  UNTIL PurchCrMemoLine.NEXT = 0;
+              END;
+            UNTIL NEXT = 0;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+      END;
+    END;
+
+    LOCAL PROCEDURE SourceCodeFromReturnShptLine@98(VAR StateIndicator@1000 : Record 104037);
+    VAR
+      ReturnShipmentHeader@1003 : Record 6650;
+      ReturnShipmentLine@1001 : Record 6651;
+      ValueEntry@1002 : Record 5802;
+    BEGIN
+      WITH ReturnShipmentHeader DO BEGIN
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          IF FIND('-') THEN
+            REPEAT
+              StateIndicator.Update;
+              IF "Buy-from Vendor No." <> "Pay-to Vendor No." THEN BEGIN
+                ReturnShipmentLine.SETRANGE("Document No.","No.");
+                ReturnShipmentLine.SETRANGE(Type,ReturnShipmentLine.Type::Item);
+                IF ReturnShipmentLine.FINDSET THEN
+                  REPEAT
+                    ModifySourceCodeOfValueEntry(
+                      "No.",ReturnShipmentLine."No.",'',
+                      ValueEntry."Item Ledger Entry Type"::Purchase,"Buy-from Vendor No.","Pay-to Vendor No.");
+                  UNTIL ReturnShipmentLine.NEXT = 0;
+              END;
+            UNTIL NEXT = 0;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+      END;
+    END;
+
+    LOCAL PROCEDURE SourceCodeFromReturnRcptLine@99(VAR StateIndicator@1000 : Record 104037);
+    VAR
+      ReturnReceiptHeader@1003 : Record 6660;
+      ReturnReceiptLine@1001 : Record 6661;
+      ValueEntry@1002 : Record 5802;
+    BEGIN
+      WITH ReturnReceiptHeader DO BEGIN
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          IF FIND('-') THEN
+            REPEAT
+              StateIndicator.Update;
+              IF "Sell-to Customer No." <> "Bill-to Customer No." THEN BEGIN
+                ReturnReceiptLine.SETRANGE("Document No.","No.");
+                ReturnReceiptLine.SETRANGE(Type,ReturnReceiptLine.Type::Item);
+                IF ReturnReceiptLine.FINDSET THEN
+                  REPEAT
+                    ModifySourceCodeOfValueEntry(
+                      "No.",ReturnReceiptLine."No.",'',
+                      ValueEntry."Item Ledger Entry Type"::Sale,"Sell-to Customer No.","Bill-to Customer No.");
+                  UNTIL ReturnReceiptLine.NEXT = 0;
+              END;
+            UNTIL NEXT = 0;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+      END;
+    END;
+
+    LOCAL PROCEDURE ModifySourceCodeOfValueEntry@100(DocumentNo@1000 : Code[20];ItemNo@1001 : Code[20];ItemChargeNo@1002 : Code[20];ILEType@1003 : Option;OldSourceCode@1004 : Code[20];NewSourceCode@1005 : Code[20]);
+    VAR
+      ValueEntry@1006 : Record 5802;
+    BEGIN
+      WITH ValueEntry DO BEGIN
+        SETCURRENTKEY("Document No.");
+        SETRANGE("Document No.",DocumentNo);
+        IF ItemNo <> '' THEN
+          SETRANGE("Item No.",ItemNo);
+        IF ItemChargeNo <> '' THEN
+          SETRANGE("Item Charge No.",ItemChargeNo);
+        SETRANGE("Item Ledger Entry Type",ILEType);
+        SETRANGE("Source No.",OldSourceCode);
+        IF NOT ISEMPTY THEN
+          MODIFYALL("Source No.",NewSourceCode);
+      END;
+    END;
+
+    LOCAL PROCEDURE DeleteEmployeePortalData@13(VAR StateIndicator@1000 : Record 104037);
+    VAR
+      NEPRec6800@1001 : Record 6800;
+      NEPRec6804@1002 : Record 6804;
+      NEPRec6805@1003 : Record 6805;
+      NEPRec6806@1004 : Record 6806;
+      NEPRec6807@1005 : Record 6807;
+      NEPRec6809@1006 : Record 6809;
+      NEPRec6810@1007 : Record 6810;
+      NEPRec6811@1008 : Record 6811;
+      NEPRec6813@1009 : Record 6813;
+      NEPRec6815@1010 : Record 6815;
+      NEPRec6822@1011 : Record 6822;
+      NEPRec6824@1012 : Record 6824;
+      NEPRec6825@1013 : Record 6825;
+      NEPRec6827@1014 : Record 6827;
+      NEPRec6828@1015 : Record 6828;
+      NEPRec6829@1016 : Record 6829;
+      NEPRec6832@1017 : Record 6832;
+      NEPRec6833@1018 : Record 6833;
+      NEPRec6835@1019 : Record 6835;
+      NEPRec6836@1020 : Record 6836;
+      NEPRec6837@1021 : Record 6837;
+      NEPRec6838@1022 : Record 6838;
+      NEPRec6839@1023 : Record 6839;
+      NEPRec6840@1024 : Record 6840;
+      NEPRec6841@1025 : Record 6841;
+      NEPRec6842@1026 : Record 6842;
+      NEPRec6843@1027 : Record 6843;
+      NEPRec6850@1028 : Record 6850;
+      NEPRec6870@1029 : Record 6870;
+      NEPRec6872@1030 : Record 6872;
+    BEGIN
+      WITH NEPRec6872 DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH NEPRec6870 DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH NEPRec6850 DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH NEPRec6843 DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH NEPRec6842 DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH NEPRec6841 DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH NEPRec6840 DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH NEPRec6839 DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH NEPRec6838 DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH NEPRec6837 DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH NEPRec6836 DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH NEPRec6835 DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH NEPRec6833 DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH NEPRec6832 DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH NEPRec6829 DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH NEPRec6828 DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH NEPRec6827 DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH NEPRec6825 DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH NEPRec6824 DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH NEPRec6822 DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH NEPRec6815 DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH NEPRec6813 DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH NEPRec6811 DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH NEPRec6809 DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH NEPRec6807 DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH NEPRec6806 DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH NEPRec6805 DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH NEPRec6804 DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH NEPRec6800 DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+    END;
+
+    LOCAL PROCEDURE DeleteMobileData@14(VAR StateIndicator@1000 : Record 104037);
+    VAR
+      MORec8700@1001 : Record 8700;
+      MORec8701@1002 : Record 8701;
+      MORec8702@1003 : Record 8702;
+      MORec8703@1004 : Record 8703;
+      MORec8704@1005 : Record 8704;
+      MORec8705@1006 : Record 8705;
+      MORec8706@1007 : Record 8706;
+      MORec8707@1008 : Record 8707;
+      MORec8708@1009 : Record 8708;
+      MORec8709@1010 : Record 8709;
+      MORec8710@1011 : Record 8710;
+      MORec8711@1012 : Record 8711;
+      MORec8725@1015 : Record 8725;
+      MORec8726@1016 : Record 8726;
+      MORec8727@1017 : Record 8727;
+      Campaign5071@1018 : Record 5071;
+    BEGIN
+      WITH MORec8727 DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH MORec8726 DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH MORec8725 DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH MORec8711 DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH MORec8710 DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH MORec8709 DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH MORec8708 DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH MORec8707 DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH MORec8706 DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH MORec8705 DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH MORec8704 DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH MORec8703 DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH MORec8702 DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH MORec8701 DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH MORec8700 DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH Campaign5071 DO
+        BEGIN
+          MODIFYALL("Selling-in Start Date",0D);
+          MODIFYALL("Selling-in End Date",0D);
+          MODIFYALL("Visible Date",0D);
+        END;
+    END;
+
+    LOCAL PROCEDURE DeleteBusinessNotificationData@16(VAR StateIndicator@1000 : Record 104037);
+    VAR
+      BNRec8000@1001 : Record 8000;
+      BNRec8001@1002 : Record 8001;
+      BNRec8002@1003 : Record 8002;
+      BNRec8003@1004 : Record 8003;
+      BNRec8004@1005 : Record 8004;
+      BNRec8005@1006 : Record 8005;
+    BEGIN
+      WITH BNRec8005 DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH BNRec8004 DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH BNRec8003 DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH BNRec8002 DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH BNRec8001 DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH BNRec8000 DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+    END;
+
+    LOCAL PROCEDURE UpdateItemJournalLine@22(VAR StateIndicator@1000 : Record 104037);
+    VAR
+      ItemJournalLine@1001 : Record 83;
+      TempItemJournalLine@1002 : Record 104070;
+      i@1003 : Integer;
+    BEGIN
+      WITH ItemJournalLine DO BEGIN
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          FOR i := 1 TO 3 DO BEGIN
+            SETRANGE("Prod. Order No.");
+            SETRANGE("Transfer Order No.");
+            SETRANGE("Service Order No.");
+            CASE i OF
+              1 :
+                SETFILTER("Prod. Order No.",'<>%1','');
+              2 :
+                SETFILTER("Transfer Order No.",'<>%1','');
+              3 :
+                SETFILTER("Service Order No.",'<>%1','');
+            END;
+            IF FINDSET(TRUE) THEN
+              REPEAT
+                StateIndicator.Update;
+                TempItemJournalLine.INIT;
+                TempItemJournalLine."Journal Template Name" := "Journal Template Name";
+                TempItemJournalLine."Journal Batch Name" := "Journal Batch Name";
+                TempItemJournalLine."Line No." := "Line No.";
+                TempItemJournalLine."Order Type" := GetCorrectOrderType("Prod. Order No.","Transfer Order No.","Service Order No.");
+                IF TempItemJournalLine."Order Type" <> TempItemJournalLine."Order Type"::" " THEN BEGIN
+                  UpdateOrderTypeFields(TempItemJournalLine."Order Type",
+                    TempItemJournalLine."Order No.",
+                    TempItemJournalLine."Order Line No.",
+                    "Prod. Order No.",
+                    "Prod. Order Line No.",
+                    "Transfer Order No.",
+                    "Service Order No.");
+                  MODIFY;
+                  TempItemJournalLine.INSERT;
+                END;
+              UNTIL NEXT = 0;
+          END;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+      END;
+    END;
+
+    LOCAL PROCEDURE UpdateItemLedgerEntry@23(VAR StateIndicator@1000 : Record 104037);
+    VAR
+      ItemLedgerEntry@1001 : Record 32;
+      TempItemLedgerEntry@1002 : Record 104071;
+      i@1003 : Integer;
+    BEGIN
+      // 003 NAVUP-890 >> moves to SQL
+      {
+      WITH ItemLedgerEntry DO BEGIN
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          FOR i := 1 TO 3 DO BEGIN
+            SETRANGE("Prod. Order No.");
+            SETRANGE("Transfer Order No.");
+            SETRANGE("Service Order No.");
+            CASE i OF
+              1 :
+                SETFILTER("Prod. Order No.",'<>%1','');
+              2 :
+                SETFILTER("Transfer Order No.",'<>%1','');
+              3 :
+                SETFILTER("Service Order No.",'<>%1','');
+            END;
+            IF FIND('-') THEN
+              REPEAT
+                StateIndicator.Update;
+                TempItemLedgerEntry.INIT;
+                TempItemLedgerEntry."Entry No." := "Entry No.";
+                TempItemLedgerEntry."Order Type" := GetCorrectOrderType("Prod. Order No.","Transfer Order No.","Service Order No.");
+                UpdateOrderTypeFields(
+                  TempItemLedgerEntry."Order Type",
+                  TempItemLedgerEntry."Order No.",
+                  TempItemLedgerEntry."Order Line No.",
+                  "Prod. Order No.",
+                  "Prod. Order Line No.",
+                  "Transfer Order No.",
+                  "Service Order No.");
+                TempItemLedgerEntry.INSERT;
+              UNTIL NEXT = 0;
+            CASE i OF
+              1 :
+                BEGIN
+                  MODIFYALL("Prod. Order Line No.",0);
+                  MODIFYALL("Prod. Order No.",'');
+                END;
+              2 :
+                MODIFYALL("Transfer Order No.",'');
+              3 :
+                MODIFYALL("Service Order No.",'');
+            END;
+          END;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+      END;
+      }
+      // 003 NAVUP-890 <<
+    END;
+
+    LOCAL PROCEDURE UpdateValueEntry2@24(VAR StateIndicator@1000 : Record 104037);
+    VAR
+      ValueEntry@1001 : Record 5802;
+      TempValueEntry@1002 : Record 104072;
+    BEGIN
+      WITH ValueEntry DO BEGIN
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          SETFILTER("Prod. Order No.",'<>%1','');
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          IF FIND('-') THEN
+            REPEAT
+              StateIndicator.Update;
+              TempValueEntry.INIT;
+              TempValueEntry."Entry No." := "Entry No.";
+              TempValueEntry."Order Type" := GetCorrectProdOrderType("Prod. Order No.");
+              UpdateProdOrderTypeFields(
+                TempValueEntry."Order No.",
+                TempValueEntry."Order Line No.",
+                "Prod. Order No.",
+                "Prod. Order Line No.");
+              TempValueEntry.INSERT;
+            UNTIL NEXT = 0;
+          MODIFYALL("Prod. Order Line No.",0);
+          MODIFYALL("Prod. Order No.",'');
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+      END;
+    END;
+
+    LOCAL PROCEDURE UpdateCostShareBuffer@26(VAR StateIndicator@1000 : Record 104037);
+    VAR
+      CostShareBuffer@1001 : Record 5848;
+      TempCostShareBuffer@1002 : Record 104073;
+    BEGIN
+      WITH CostShareBuffer DO BEGIN
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          SETFILTER("Prod. Order No.",'<>%1','');
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          IF FINDSET(TRUE) THEN
+            REPEAT
+              StateIndicator.Update;
+              TempCostShareBuffer.INIT;
+              TempCostShareBuffer."Item Ledger Entry No." := "Item Ledger Entry No.";
+              TempCostShareBuffer."Capacity Ledger Entry No." := "Capacity Ledger Entry No.";
+              TempCostShareBuffer."Order Type" := GetCorrectProdOrderType("Prod. Order No.");
+              UpdateProdOrderTypeFields(TempCostShareBuffer."Order No.",
+                TempCostShareBuffer."Order Line No.",
+                "Prod. Order No.",
+                "Prod. Order Line No.");
+              MODIFY;
+              TempCostShareBuffer.INSERT;
+            UNTIL NEXT = 0;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+      END;
+    END;
+
+    LOCAL PROCEDURE UpdateCapacityLedgerEntry@28(VAR StateIndicator@1000 : Record 104037);
+    VAR
+      CapacityLedgerEntry@1001 : Record 5832;
+      TempCapacityLedgerEntry@1002 : Record 104074;
+    BEGIN
+      WITH CapacityLedgerEntry DO BEGIN
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          SETFILTER("Prod. Order No.",'<>%1','');
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          IF FINDSET(TRUE) THEN
+            REPEAT
+              StateIndicator.Update;
+              TempCapacityLedgerEntry.INIT;
+              TempCapacityLedgerEntry."Entry No." := "Entry No.";
+              TempCapacityLedgerEntry."Order Type" := GetCorrectProdOrderType("Prod. Order No.");
+              UpdateProdOrderTypeFields(
+                TempCapacityLedgerEntry."Order No.",
+                TempCapacityLedgerEntry."Order Line No.",
+                "Prod. Order No.",
+                "Prod. Order Line No.");
+              MODIFY;
+              TempCapacityLedgerEntry.INSERT;
+            UNTIL NEXT = 0;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+      END;
+    END;
+
+    PROCEDURE UpdateItemApplnEntryHistory@17(VAR StateIndicator@1000 : Record 104037);
+    VAR
+      ItemApplnEntryHistory@1001 : Record 343;
+      TempItemApplnEntryHistory@1002 : Record 104075;
+    BEGIN
+      WITH ItemApplnEntryHistory DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          IF FINDSET(TRUE) THEN
+            REPEAT
+              StateIndicator.Update;
+              TempItemApplnEntryHistory.INIT;
+              TempItemApplnEntryHistory.TRANSFERFIELDS(ItemApplnEntryHistory);
+              TempItemApplnEntryHistory.INSERT;
+            UNTIL NEXT = 0;
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+    END;
+
+    LOCAL PROCEDURE GetCorrectOrderType@27(ProdOrderNo@1002 : Code[20];TransferOrderNo@1003 : Code[20];ServiceOrderNo@1004 : Code[20]) OrdType : Integer;
+    VAR
+      OrderType@1008 : ' ,Production,Transfer,Service';
+    BEGIN
+      OrdType := 0;
+      OrdType := GetCorrectProdOrderType(ProdOrderNo);
+      IF TransferOrderNo <> '' THEN
+        OrdType := OrderType::Transfer;
+      IF ServiceOrderNo <> '' THEN
+        OrdType := OrderType::Service;
+    END;
+
+    LOCAL PROCEDURE GetCorrectProdOrderType@36(ProdOrderNo@1000 : Code[20]) OrdType : Integer;
+    VAR
+      OrderType@1001 : ' ,Production,Transfer,Service';
+    BEGIN
+      OrdType := 0;
+      IF ProdOrderNo <> '' THEN
+        OrdType := OrderType::Production;
+    END;
+
+    LOCAL PROCEDURE UpdateOrderTypeFields@29(OrdType@1000 : Option;VAR OrderNo@1001 : Code[20];VAR OrderLineNo@1002 : Integer;VAR ProdOrderNo@1003 : Code[20];VAR ProdOrderLineNo@1004 : Integer;VAR TransferOrderNo@1005 : Code[20];VAR ServiceOrderNo@1006 : Code[20]);
+    VAR
+      OrderType@1007 : ' ,Production,Transfer,Service';
+    BEGIN
+      CASE OrdType OF
+        OrderType::Production:
+          UpdateProdOrderTypeFields(OrderNo,OrderLineNo,ProdOrderNo,ProdOrderLineNo);
+        OrderType::Transfer:
+          BEGIN
+            OrderNo := TransferOrderNo;
+            TransferOrderNo := '';
+          END;
+        OrderType::Service:
+          BEGIN
+            OrderNo := ServiceOrderNo;
+            ServiceOrderNo := '';
+          END;
+      END;
+    END;
+
+    LOCAL PROCEDURE UpdateProdOrderTypeFields@30(VAR OrderNo@1000 : Code[20];VAR OrderLineNo@1001 : Integer;VAR ProdOrderNo@1002 : Code[20];VAR ProdOrderLineNo@1003 : Integer);
+    BEGIN
+      OrderNo := ProdOrderNo;
+      OrderLineNo := ProdOrderLineNo;
+      ProdOrderNo := '';
+      ProdOrderLineNo := 0;
+    END;
+
+    LOCAL PROCEDURE UpdateProdOrderLine@18(VAR StateIndicator@1003 : Record 104037);
+    VAR
+      ProdOrderLine@1001 : Record 5406;
+      TempInvtAdjmtEntryOrd@1002 : Record 104080;
+      AmtRndingPrecACY@1000 : Decimal;
+    BEGIN
+      GetRoundingPrecision(AmtRndingPrecACY);
+      WITH ProdOrderLine DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          IF FINDSET(TRUE) THEN
+            REPEAT
+              StateIndicator.Update;
+              IF Status IN [Status::Released,Status::Finished] THEN BEGIN
+                TempInvtAdjmtEntryOrd.INIT;
+                TempInvtAdjmtEntryOrd."Order Type" := TempInvtAdjmtEntryOrd."Order Type"::Production;
+                TempInvtAdjmtEntryOrd."Order No." := "Prod. Order No.";
+                TempInvtAdjmtEntryOrd."Order Line No." := "Line No.";
+                TempInvtAdjmtEntryOrd."Item No." := "Item No.";
+                TempInvtAdjmtEntryOrd."Routing No." := "Routing No.";
+                TempInvtAdjmtEntryOrd."Routing Reference No." := "Routing Reference No.";
+                TempInvtAdjmtEntryOrd."Indirect Cost %" := "Indirect Cost %";
+                TempInvtAdjmtEntryOrd."Overhead Rate" := "Overhead Rate";
+                TempInvtAdjmtEntryOrd."Cost is Adjusted" := "Cost is Adjusted";
+                TempInvtAdjmtEntryOrd."Allow Online Adjustment" := "Allow Online Adjustment";
+                TempInvtAdjmtEntryOrd."Unit Cost" := "Unit Cost";
+                TempInvtAdjmtEntryOrd."Single-Level Material Cost" := "Single-Level Material Cost";
+                TempInvtAdjmtEntryOrd."Single-Level Capacity Cost" := "Single-Level Capacity Cost";
+                TempInvtAdjmtEntryOrd."Single-Level Subcontrd. Cost" := "Single-Level Subcontrd. Cost";
+                TempInvtAdjmtEntryOrd."Single-Level Cap. Ovhd Cost" := "Single-Level Cap. Ovhd Cost";
+                TempInvtAdjmtEntryOrd."Single-Level Mfg. Ovhd Cost" := "Single-Level Mfg. Ovhd Cost";
+                TempInvtAdjmtEntryOrd."Direct Cost" :=
+                  "Single-Level Material Cost" +
+                  "Single-Level Capacity Cost" +
+                  "Single-Level Subcontrd. Cost" +
+                  "Single-Level Cap. Ovhd Cost";
+                TempInvtAdjmtEntryOrd."Indirect Cost" := "Single-Level Mfg. Ovhd Cost";
+
+                TempInvtAdjmtEntryOrd."Direct Cost (ACY)" :=
+                  GetRoundedAmtACY(TempInvtAdjmtEntryOrd."Direct Cost","Currency Factor",AmtRndingPrecACY);
+                TempInvtAdjmtEntryOrd."Indirect Cost (ACY)" :=
+                  GetRoundedAmtACY(TempInvtAdjmtEntryOrd."Indirect Cost","Currency Factor",AmtRndingPrecACY);
+                TempInvtAdjmtEntryOrd."Single-Lvl Material Cost (ACY)" :=
+                  GetRoundedAmtACY("Single-Level Material Cost","Currency Factor",AmtRndingPrecACY);
+                TempInvtAdjmtEntryOrd."Single-Lvl Capacity Cost (ACY)" :=
+                  GetRoundedAmtACY("Single-Level Capacity Cost","Currency Factor",AmtRndingPrecACY);
+                TempInvtAdjmtEntryOrd."Single-Lvl Subcontrd Cost(ACY)" :=
+                  GetRoundedAmtACY("Single-Level Subcontrd. Cost","Currency Factor",AmtRndingPrecACY);
+                TempInvtAdjmtEntryOrd."Single-Lvl Cap. Ovhd Cost(ACY)" :=
+                  GetRoundedAmtACY("Single-Level Cap. Ovhd Cost","Currency Factor",AmtRndingPrecACY);
+                TempInvtAdjmtEntryOrd."Single-Lvl Mfg. Ovhd Cost(ACY)" :=
+                  GetRoundedAmtACY("Single-Level Mfg. Ovhd Cost","Currency Factor",AmtRndingPrecACY);
+
+                TempInvtAdjmtEntryOrd."Completely Invoiced" := "Completely Invoiced";
+                TempInvtAdjmtEntryOrd."Is Finished" := Status = Status::Finished;
+                TempInvtAdjmtEntryOrd.INSERT;
+              END;
+
+              "Completely Invoiced" := FALSE;
+              "Cost is Adjusted" := FALSE;
+              "Currency Factor" := 0;
+              "Allow Online Adjustment" := FALSE;
+              "Single-Level Material Cost" := 0;
+              "Single-Level Capacity Cost" := 0;
+              "Single-Level Subcontrd. Cost" := 0;
+              "Single-Level Cap. Ovhd Cost" := 0;
+              "Single-Level Mfg. Ovhd Cost" := 0;
+              MODIFY;
+            UNTIL NEXT = 0;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+    END;
+
+    LOCAL PROCEDURE GetRoundingPrecision@20(VAR AmtRndingPrecACY@1000 : Decimal);
+    VAR
+      Currency@1001 : Record 4;
+      GLSetup@1002 : Record 98;
+    BEGIN
+      GLSetup.GET;
+      AmtRndingPrecACY := Currency."Amount Rounding Precision";
+      IF GLSetup."Additional Reporting Currency" <> '' THEN BEGIN
+        Currency.GET(GLSetup."Additional Reporting Currency");
+        Currency.CheckAmountRoundingPrecision;
+        AmtRndingPrecACY := Currency."Amount Rounding Precision";
+      END;
+    END;
+
+    LOCAL PROCEDURE GetRoundedAmtACY@21(Amount@1000 : Decimal;CurrencyFactor@1001 : Decimal;AmtRndingPrecAcy@1002 : Decimal) : Decimal;
+    BEGIN
+      EXIT(ROUND(Amount * CurrencyFactor,AmtRndingPrecAcy));
+    END;
+
+    LOCAL PROCEDURE DeleteBusinessAnalyticsData@40(VAR StateIndicator@1000 : Record 104037);
+    VAR
+      BARec700@1001 : Record 700;
+      BARec701@1002 : Record 701;
+      BARec702@1003 : Record 702;
+      BARec703@1004 : Record 703;
+      BARec704@1005 : Record 704;
+      BARec705@1006 : Record 705;
+      BARec706@1007 : Record 706;
+      BARec707@1008 : Record 707;
+      BARec708@1009 : Record 708;
+      BARec709@1010 : Record 709;
+      BARec710@1011 : Record 710;
+      BARec711@1012 : Record 711;
+      BARec712@1013 : Record 712;
+      BARec713@1014 : Record 713;
+      BARec714@1015 : Record 714;
+      BARec715@1016 : Record 715;
+      BARec716@1017 : Record 716;
+      BARec720@1018 : Record 720;
+    BEGIN
+      WITH BARec700 DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH BARec701 DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH BARec702 DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH BARec703 DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH BARec704 DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH BARec705 DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH BARec706 DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH BARec707 DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH BARec708 DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH BARec709 DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH BARec710 DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH BARec711 DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH BARec712 DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH BARec713 DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH BARec714 DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH BARec715 DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH BARec716 DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH BARec720 DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+    END;
+
+    LOCAL PROCEDURE DeleteItemAnalysisSalesData@44(VAR StateIndicator@1000 : Record 104037);
+    VAR
+      ItemAnalysisView@1001 : Record 7152;
+    BEGIN
+      WITH ItemAnalysisView DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          SETRANGE("Analysis Area","Analysis Area"::Sales);
+          IF FINDSET THEN
+            REPEAT
+              ItemAnalysisViewReset;
+            UNTIL NEXT = 0;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+    END;
+
+    LOCAL PROCEDURE DeleteCommerceGatewayData@41(VAR StateIndicator@1000 : Record 104037);
+    VAR
+      InboundSalesDocumentHeader@1001 : Record 99008500;
+      InboundSalesDocumentLine@1002 : Record 99008501;
+      InboundPurchDocumentHeader@1003 : Record 99008502;
+      InboundPurchaseDocumentLine@1004 : Record 99008503;
+      InboundProductCatalogHdr@1005 : Record 99008504;
+      InboundProductCatalogLine@1006 : Record 99008505;
+      OutboundSalesDocumentHeader@1007 : Record 99008506;
+      OutboundSalesDocumentLine@1008 : Record 99008507;
+      OutboundPurchDocumentHdr@1009 : Record 99008508;
+      OutboundPurchDocumentLine@1010 : Record 99008509;
+      OutboundProductCatalogLine@1011 : Record 99008510;
+      OutboundDocument@1012 : Record 99008511;
+      BizTalkManagementSetup@1013 : Record 99008512;
+      BizTalkPartnerSetupHeader@1014 : Record 99008513;
+      BizTalkPartnerAgreement@1015 : Record 99008514;
+      BizTalkCommentLine@1016 : Record 99008515;
+      BizTalkPartnerSetupLine@1017 : Record 99008516;
+      BizTalkRequest@1018 : Record 99008517;
+      BizTalkSuspendedQueue@1019 : Record 99008518;
+      BizTalkTechnicalNotification@1020 : Record 99008519;
+      AgreementType@1021 : Record 99008520;
+      BizTalkMessageCheck@1022 : Record 99008521;
+      BizTalkDocReceiptCheck@1023 : Record 99008522;
+      BizTalkPartnerCurrencyMap@1024 : Record 99008532;
+      BizTalkReservationEntry@1025 : Record 99008533;
+      OutboundProductCatalogHdr@1026 : Record 99008534;
+      SalesShipmentHeader@1100 : Record 110;
+      SalesInvoiceHeader@1101 : Record 112;
+      SalesCrMemoHeader@1102 : Record 114;
+      PurchRcptHeader@1103 : Record 120;
+      PurchInvHeader@1104 : Record 122;
+      PurchCrMemoHdr@1105 : Record 124;
+      SalesHeader@1106 : Record 36;
+      PurchaseHeader@1107 : Record 38;
+      SalesHeaderArchive@1108 : Record 5107;
+      PurchaseHeaderArchive@1109 : Record 5109;
+    BEGIN
+      WITH SalesShipmentHeader DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+      // 003 NAVUP-890 >>
+      //    MODIFYALL("Date Sent",0D);
+      //    MODIFYALL("Time Sent",0T);
+      //    MODIFYALL("BizTalk Shipment Notification",FALSE);
+      //    MODIFYALL("Customer Order No.",'');
+      //    MODIFYALL("BizTalk Document Sent",FALSE);
+      // 003 NAVUP-890 >>
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH SalesInvoiceHeader DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+      // 003 NAVUP-890 >>
+      //    MODIFYALL("Date Sent",0D);
+      //    MODIFYALL("Time Sent",0T);
+      //    MODIFYALL("BizTalk Sales Invoice",FALSE);
+      //    MODIFYALL("Customer Order No.",'');
+      //    MODIFYALL("BizTalk Document Sent",FALSE);
+      // 003 NAVUP-890 <<
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH SalesCrMemoHeader DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+      // 003 NAVUP-890 >>
+      //    MODIFYALL("Date Sent",0D);
+      //    MODIFYALL("Time Sent",0T);
+      //    MODIFYALL("BizTalk Sales Credit Memo",FALSE);
+      //    MODIFYALL("BizTalk Document Sent",FALSE);
+      // 003 NAVUP-890 <<
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH PurchRcptHeader DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+      // 003 NAVUP-890 >>
+      //    MODIFYALL("Date Received",0D);
+      //    MODIFYALL("Time Received",0T);
+      //    MODIFYALL("BizTalk Purchase Receipt",FALSE);
+      // 003 NAVUP-890 <<
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH PurchInvHeader DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+      // 003 NAVUP-890 >>
+      //    MODIFYALL("Date Received",0D);
+      //    MODIFYALL("Time Received",0T);
+      //    MODIFYALL("BizTalk Purchase Invoice",FALSE);
+      // 003 NAVUP-890 <<
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH PurchCrMemoHdr DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+      // 003 NAVUP-890 >>
+      //    MODIFYALL("Date Received",0D);
+      //    MODIFYALL("Time Received",0T);
+      //    MODIFYALL("BizTalk Purchase Credit Memo",FALSE);
+      // 003 NAVUP-890 <<
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH SalesHeader DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+      // 003 NAVUP-890 >>
+      //    MODIFYALL("Date Received",0D);
+      //    MODIFYALL("Time Received",0T);
+      //    MODIFYALL("BizTalk Request for Sales Qte.",FALSE);
+      //    MODIFYALL("BizTalk Sales Order",FALSE);
+      //    MODIFYALL("Date Sent",0D);
+      //    MODIFYALL("Time Sent",0T);
+      //    MODIFYALL("BizTalk Sales Quote",FALSE);
+      //    MODIFYALL("BizTalk Sales Order Cnfmn.",FALSE);
+      //    MODIFYALL("Customer Quote No.",'');
+      //    MODIFYALL("Customer Order No.",'');
+      //    MODIFYALL("BizTalk Document Sent",FALSE);
+      // 003 NAVUP-890 <<
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH PurchaseHeader DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+      // 003 NAVUP-890 >>
+      //    MODIFYALL("Date Received",0D);
+      //    MODIFYALL("Time Received",0T);
+      //    MODIFYALL("BizTalk Purchase Quote",FALSE);
+      //    MODIFYALL("BizTalk Purch. Order Cnfmn.",FALSE);
+      //    MODIFYALL("BizTalk Purchase Invoice",FALSE);
+      //    MODIFYALL("BizTalk Purchase Receipt",FALSE);
+      //    MODIFYALL("BizTalk Purchase Credit Memo",FALSE);
+      //    MODIFYALL("Date Sent",0D);
+      //    MODIFYALL("Time Sent",0T);
+      //    MODIFYALL("BizTalk Request for Purch. Qte",FALSE);
+      //    MODIFYALL("BizTalk Purchase Order",FALSE);
+      //    MODIFYALL("Vendor Quote No.",'');
+      //    MODIFYALL("BizTalk Document Sent",FALSE);
+      // 003 NAVUP-890 <<
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH SalesHeaderArchive DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          MODIFYALL("Date Received",0D);
+          MODIFYALL("Time Received",0T);
+          MODIFYALL("BizTalk Request for Sales Qte.",FALSE);
+          MODIFYALL("BizTalk Sales Order",FALSE);
+          MODIFYALL("Date Sent",0D);
+          MODIFYALL("Time Sent",0T);
+          MODIFYALL("BizTalk Sales Quote",FALSE);
+          MODIFYALL("BizTalk Sales Order Cnfmn.",FALSE);
+          MODIFYALL("Customer Quote No.",'');
+          MODIFYALL("Customer Order No.",'');
+          MODIFYALL("BizTalk Document Sent",FALSE);
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH PurchaseHeaderArchive DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          MODIFYALL("Date Received",0D);
+          MODIFYALL("Time Received",0T);
+          MODIFYALL("BizTalk Purchase Quote",FALSE);
+          MODIFYALL("BizTalk Purch. Order Cnfmn.",FALSE);
+          MODIFYALL("BizTalk Purchase Invoice",FALSE);
+          MODIFYALL("BizTalk Purchase Receipt",FALSE);
+          MODIFYALL("BizTalk Purchase Credit Memo",FALSE);
+          MODIFYALL("Date Sent",0D);
+          MODIFYALL("Time Sent",0T);
+          MODIFYALL("BizTalk Request for Purch. Qte",FALSE);
+          MODIFYALL("BizTalk Purchase Order",FALSE);
+          MODIFYALL("Vendor Quote No.",'');
+          MODIFYALL("BizTalk Document Sent",FALSE);
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH InboundSalesDocumentHeader DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH InboundSalesDocumentLine DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH InboundPurchDocumentHeader DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH InboundPurchaseDocumentLine DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH InboundProductCatalogHdr DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH InboundProductCatalogLine DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH OutboundSalesDocumentHeader DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH OutboundSalesDocumentLine DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH OutboundPurchDocumentHdr DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH OutboundPurchDocumentLine DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH OutboundProductCatalogLine DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH OutboundDocument DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH BizTalkManagementSetup DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH BizTalkPartnerSetupHeader DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH BizTalkPartnerAgreement DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH BizTalkCommentLine DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH BizTalkPartnerSetupLine DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH BizTalkRequest DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH BizTalkSuspendedQueue DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH BizTalkTechnicalNotification DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH AgreementType DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH BizTalkMessageCheck DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH BizTalkDocReceiptCheck DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH BizTalkPartnerCurrencyMap DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH BizTalkReservationEntry DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH OutboundProductCatalogHdr DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+    END;
+
+    PROCEDURE ClearMarketingSetup@33(VAR StateIndicator@1170000000 : Record 104037);
+    VAR
+      Marketingsetup@1001 : Record 5079;
+    BEGIN
+      WITH Marketingsetup DO BEGIN
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          IF GET THEN BEGIN
+            "E-Mail Logging User ID" := '';
+            "E-Mail Logging Profile Name" := '';
+            "Queue Folder Name" := '';
+            CALCFIELDS("Queue Folder Store ID");
+            IF "Queue Folder Store ID".HASVALUE THEN
+              CLEAR("Queue Folder Store ID");
+            CALCFIELDS("Queue Folder Entry ID");
+            IF "Queue Folder Entry ID".HASVALUE THEN
+              CLEAR("Queue Folder Entry ID");
+           "Storage Folder Name" := '';
+            CALCFIELDS("Storage Folder Store ID");
+            IF "Storage Folder Store ID".HASVALUE THEN
+              CLEAR("Storage Folder Store ID");
+            CALCFIELDS("Storage Folder Entry ID");
+            IF "Storage Folder Entry ID".HASVALUE THEN
+              CLEAR("Storage Folder Entry ID");
+            "Time Interval (Sec.)" := 0;
+            "Index Mode" := 0;
+            Delimiters := '';
+            MODIFY;
+          END;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+      END;
+    END;
+
+    LOCAL PROCEDURE ClearAttachmentEmails@37(VAR StateIndicator@1000 : Record 104037);
+    VAR
+      Attachment@1001 : Record 5062;
+    BEGIN
+      WITH Attachment DO BEGIN
+        TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+        IF FIND('-') THEN BEGIN
+          REPEAT
+            CALCFIELDS("Store Pointer ID");
+            IF "Store Pointer ID".HASVALUE THEN
+              CLEAR("Store Pointer ID");
+            "Store Pointer Checksum" := 0;
+            CALCFIELDS("Entry Pointer ID");
+            IF "Entry Pointer ID".HASVALUE THEN
+              CLEAR("Entry Pointer ID");
+            "Entry Pointer Checksum" := 0;
+            MODIFY;
+          UNTIL NEXT = 0;
+        END;
+        TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+        StateIndicator.EndUpdateTable(TABLENAME);
+      END;
+    END;
+
+    LOCAL PROCEDURE ClearMailGUIDFields@1170000001(VAR StateIndicator@1170000000 : Record 104037);
+    VAR
+      InteractionLogEntry@1170000001 : Record 5065;
+      SegLine@1170000002 : Record 5077;
+    BEGIN
+      WITH InteractionLogEntry DO BEGIN
+        TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+        IF FIND('-') THEN BEGIN
+          REPEAT
+            CLEAR("Mail GUID");
+            MODIFY;
+          UNTIL NEXT = 0;
+        END;
+        TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+        StateIndicator.EndUpdateTable(TABLENAME);
+      END;
+
+      WITH SegLine DO BEGIN
+        TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+        IF FIND('-') THEN BEGIN
+          REPEAT
+            CLEAR("Mail GUID");
+            MODIFY;
+          UNTIL NEXT = 0;
+        END;
+        TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+        StateIndicator.EndUpdateTable(TABLENAME);
+      END;
+    END;
+
+    LOCAL PROCEDURE ClearPropertyStore@1170000000(VAR StateIndicator@1170000000 : Record 104037);
+    VAR
+      PropertyStore@1170000001 : Record 9801;
+    BEGIN
+      WITH PropertyStore DO BEGIN
+        TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+        DELETEALL();
+        TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+        StateIndicator.EndUpdateTable(TABLENAME);
+      END;
+    END;
+
+    LOCAL PROCEDURE ClearEmailLoggingSemaphore@1170000002(VAR StateIndicator@1170000000 : Record 104037);
+    VAR
+      EmailLoggingSemaphore@1170000001 : Record 5112;
+    BEGIN
+      WITH EmailLoggingSemaphore DO BEGIN
+        TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+        DELETEALL();
+        TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+        StateIndicator.EndUpdateTable(TABLENAME);
+      END;
+    END;
+
+    PROCEDURE DeleteContactsearch@31(VAR StateIndicator@1000 : Record 104037);
+    VAR
+      SearchWord@1001 : Record 5117;
+      SearchWordDetail@1002 : Record 5118;
+    BEGIN
+      WITH SearchWord DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH SearchWordDetail DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+    END;
+
+    PROCEDURE DeleteOldJobQueue@25(VAR StateIndicator@1000 : Record 104037);
+    VAR
+      JobQueueSetup@1001 : Record 470;
+      JobQueueProcess@1002 : Record 471;
+      JobQueueResponse@1003 : Record 473;
+      JobQueueEntry@1004 : Record 472;
+    BEGIN
+      WITH JobQueueSetup DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH JobQueueProcess DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH JobQueueResponse DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH JobQueueEntry DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          MODIFYALL("Response Required",FALSE);
+          MODIFYALL("No. of Attempts to Run",0);
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+    END;
+
+    PROCEDURE ProcessEmptyBUoMItems@32(VAR StateIndicator@1000 : Record 104037);
+    VAR
+      Item@1001 : Record 27;
+      TempItemEmptyBUoM@1002 : Record 104076;
+    BEGIN
+      WITH Item DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+      // 003 NAVUP-890 >> moved to SQL
+      {
+          SETFILTER("Base Unit of Measure",'%1','');
+          IF FINDSET THEN
+            REPEAT
+              StateIndicator.Update;
+
+              TempItemEmptyBUoM.INIT;
+              TempItemEmptyBUoM."No." := "No.";
+              TempItemEmptyBUoM.Description := Description;
+              TempItemEmptyBUoM.INSERT;
+            UNTIL NEXT = 0;
+      }
+      // 003 NAVUP-890 <<
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+    END;
+
+    LOCAL PROCEDURE DeleteBOMJournalTemplate@46(VAR StateIndicator@1001 : Record 104037);
+    VAR
+      BOMJournalTemplate@1000 : Record 88;
+    BEGIN
+      WITH BOMJournalTemplate DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+    END;
+
+    LOCAL PROCEDURE DeleteBOMJournalBatch@47(VAR StateIndicator@1000 : Record 104037);
+    VAR
+      BOMJournalBatch@1001 : Record 234;
+    BEGIN
+      WITH BOMJournalBatch DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+    END;
+
+    LOCAL PROCEDURE UpdateLocation@48(VAR StateIndicator@1000 : Record 104037);
+    VAR
+      Location@1001 : Record 14;
+    BEGIN
+      WITH Location DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          IF NOT ISEMPTY THEN BEGIN
+            StateIndicator.Update;
+            MODIFYALL("Inbound BOM Bin Code",'');
+            MODIFYALL("Outbound BOM Bin Code",'');
+          END;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+    END;
+
+    LOCAL PROCEDURE UpdateSourceCodeSetup@49(VAR StateIndicator@1000 : Record 104037);
+    VAR
+      SourceCodeSetup@1001 : Record 242;
+    BEGIN
+      WITH SourceCodeSetup DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          IF NOT ISEMPTY THEN BEGIN
+            StateIndicator.Update;
+            MODIFYALL("BOM Journal",'');
+            MODIFYALL("Compress BOM Ledger",'');
+          END;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+    END;
+
+    LOCAL PROCEDURE UpdateBOMComp@34(VAR StateIndicator@1000 : Record 104037);
+    VAR
+      BOMComp@1001 : Integer;
+      TempBOMComp@1002 : Record 104083;
+    BEGIN
+      {//>> 001 NAVUP PJS
+      WITH BOMComp DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          SETFILTER("Production Lead Time",'<>0');
+          IF FINDSET(TRUE) THEN
+            REPEAT
+              StateIndicator.Update;
+              TempBOMComp.INIT;
+              TempBOMComp.TRANSFERFIELDS(BOMComp);
+              TempBOMComp.INSERT;
+            UNTIL NEXT = 0;
+          MODIFYALL("Production Lead Time",0);
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+      }//<< 001 NAVUP PJS
+    END;
+
+    LOCAL PROCEDURE UpdateDOCreditCard@43(VAR StateIndicator@1000 : Record 104037);
+    VAR
+      DOPaymentCreditCard@1001 : Record 827;
+      TempDOPaymentCreditCard@1002 : Record 104086;
+    BEGIN
+      WITH DOPaymentCreditCard DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          SETFILTER("Cvc No.",'<>0');
+          IF FINDSET(TRUE) THEN
+            REPEAT
+              StateIndicator.Update;
+              TempDOPaymentCreditCard.INIT;
+              TempDOPaymentCreditCard.TRANSFERFIELDS(DOPaymentCreditCard);
+              TempDOPaymentCreditCard.INSERT;
+            UNTIL NEXT = 0;
+          MODIFYALL("Cvc No.",0);
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+    END;
+
+    LOCAL PROCEDURE FillInTempWindowsLogin@52(VAR StateIndicator@1002 : Record 104037);
+    VAR
+      WindowsLogin@1000 : Record 2000000054;
+      TempWindowsLogin@1001 : Record 104087;
+      LoginMgt@1003 : Codeunit 418;
+    BEGIN
+      WITH WindowsLogin DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          IF FINDSET THEN
+            REPEAT
+              StateIndicator.Update;
+              WindowsLogin.CALCFIELDS(ID,Name);
+              TempWindowsLogin.INIT;
+              TempWindowsLogin."User ID" := LoginMgt.ShortUserID(WindowsLogin.ID);
+              TempWindowsLogin."User Name" := WindowsLogin.Name;
+              //>> 002 NAVUP PJS
+              //TempWindowsLogin.INSERT;
+              IF NOT TempWindowsLogin.INSERT THEN;
+              //<< 002 NAVUP PJS
+            UNTIL NEXT = 0;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+    END;
+
+    LOCAL PROCEDURE DeleteUnusedADCSTables@38(VAR StateIndicator@1000 : Record 104037);
+    VAR
+      XMLQueue@1001 : Record 7709;
+    BEGIN
+      WITH XMLQueue DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+    END;
+
+    LOCAL PROCEDURE DeleteMigrationData@51(VAR StateIndicator@1000 : Record 104037);
+    VAR
+      MigrationTable@1001 : Record 8613;
+      MigrationRecord@1002 : Record 8614;
+      MigrationData@1003 : Record 8615;
+      MigrationTableField@1004 : Record 8616;
+      MigrationDataError@1005 : Record 8617;
+      CompanyType@1006 : Record 8620;
+    BEGIN
+      WITH CompanyType DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH MigrationTable DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH MigrationTableField DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH MigrationRecord DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH MigrationData DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+
+      WITH MigrationDataError DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          DELETEALL;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+    END;
+
+    LOCAL PROCEDURE FillInTempUser@81(VAR StateIndicator@1002 : Record 104037);
+    VAR
+      User@1000 : Record 2000000002;
+      TempUser@1001 : Record 104088;
+    BEGIN
+      IF NOT TempUser.ISEMPTY THEN // processed once as DataPerCompany = No
+        EXIT;
+
+      WITH User DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          IF FINDSET THEN
+            REPEAT
+              StateIndicator.Update;
+              TempUser.INIT;
+              TempUser.TRANSFERFIELDS(User);
+              TempUser.INSERT;
+            UNTIL NEXT = 0;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+    END;
+
+    LOCAL PROCEDURE FillInTempMemberOf@82(VAR StateIndicator@1002 : Record 104037);
+    VAR
+      MemberOf@1000 : Record 2000000003;
+      TempMemberOf@1001 : Record 104089;
+    BEGIN
+      IF NOT TempMemberOf.ISEMPTY THEN // processed once as DataPerCompany = No
+        EXIT;
+
+      WITH MemberOf DO
+        IF StateIndicator.UpdateTable(TABLENAME) THEN BEGIN
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,TRUE);
+          IF FINDSET THEN
+            REPEAT
+              StateIndicator.Update;
+              TempMemberOf.INIT;
+              TempMemberOf.TRANSFERFIELDS(MemberOf);
+              TempMemberOf.INSERT;
+            UNTIL NEXT = 0;
+          TimeLog.TimeLogInsert(TimeLog,TABLENAME,FALSE);
+          StateIndicator.EndUpdateTable(TABLENAME);
+        END;
+    END;
+
+    BEGIN
+    {
+      001 NAVUP PJS 2018/11/29 Removed BOM References (table 90)
+      002 NAVUP PJS 2018/11/29 do not insert if temporary loggin already exists
+      003 NAVUP-890 ASH 2019/02/06 Checked manually before to skip on the upgrade date.
+    }
+    END.
+  }
+}
+
